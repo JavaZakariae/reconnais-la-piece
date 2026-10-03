@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reconnais la Pièce</title>
+<meta name="description" content="Quiz pour reconnaître 94 pièces de plomberie, chauffage et débouchage, avec noms français et néerlandais.">
+<meta name="theme-color" content="#1C2630">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout : fiche de catalogue grossiste — dessin technique sur papier millimétré, réponses en dessous, une colonne de 760px */
+:root{
+  --bg:#E9ECEE; --paper:#FBFCFC; --ink:#1C2630; --muted:#56646F; --line:#CCD3D8; --grid:#E1E6EA;
+  --copper:#B4602B; --brass:#CDA444; --steel:#BAC3CA; --pvc:#98A5AE; --signal:#C9392E; --rubber:#6E2A22; --wood:#A97A4A; --soil:#DCD5C7; --water:#8FB4CC;
+  --blue:#2F6FB0; --yellow:#E0B229; --ok:#25703F; --ok-bg:#E1F1E6; --bad:#A92820; --bad-bg:#F8E3E1;
+  --f-display:'Barlow Condensed','Arial Narrow',sans-serif;
+  --f-body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111619; --paper:#1A2127; --ink:#E2E7EB; --muted:#97A4AE; --line:#303B44; --grid:#212A31;
+    --copper:#D7854F; --brass:#D6B456; --steel:#5E6C77; --pvc:#556470; --signal:#DD5649; --rubber:#9C463B; --wood:#B98C5C; --soil:#39342C; --water:#3E6680;
+    --blue:#5B95D6; --yellow:#E8C24C; --ok:#6BC891; --ok-bg:#16301F; --bad:#F2786F; --bad-bg:#3A1C1A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111619; --paper:#1A2127; --ink:#E2E7EB; --muted:#97A4AE; --line:#303B44; --grid:#212A31;
+  --copper:#D7854F; --brass:#D6B456; --steel:#5E6C77; --pvc:#556470; --signal:#DD5649; --rubber:#9C463B; --wood:#B98C5C; --soil:#39342C; --water:#3E6680;
+  --blue:#5B95D6; --yellow:#E8C24C; --ok:#6BC891; --ok-bg:#16301F; --bad:#F2786F; --bad-bg:#3A1C1A;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:28px 56px;display:flex;flex-direction:column;gap:20px}
+.mono{font-family:var(--f-mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 24px}
+header .titles{display:flex;flex-direction:column;gap:4px;min-width:0}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(2.3rem,7vw,3.4rem);line-height:.95;text-transform:uppercase;letter-spacing:.01em;margin:0;text-wrap:balance}
+h1 span{color:var(--copper)}
+
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--paper);gap:2px}
+.seg button{font:500 13px var(--f-body);color:var(--muted);background:none;border:0;border-radius:999px;padding:6px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.seg button:focus-visible,.opt:focus-visible,.btn:focus-visible,.chipbtn:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+
+.settings{display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center}
+.settings label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+
+.card{background:var(--paper);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.ticks{display:flex;gap:4px;flex:1;min-width:120px;max-width:260px}
+.ticks i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+.ticks i.ok{background:var(--ok)} .ticks i.bad{background:var(--bad)} .ticks i.now{background:var(--ink)}
+
+.plate{position:relative;background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:20px 20px;background-position:-1px -1px;display:flex;justify-content:center;padding-block:18px}
+.plate svg{width:min(100%,400px);height:auto;max-width:100%;display:block}
+.plate .ref{position:absolute;left:14px;bottom:10px;color:var(--muted)}
+
+.body{padding:18px 18px 20px;display:flex;flex-direction:column;gap:14px}
+.q{font-family:var(--f-display);font-weight:600;font-size:1.5rem;text-transform:uppercase;letter-spacing:.02em;margin:0}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (max-width:480px){.opts{grid-template-columns:1fr}}
+.opt{display:flex;align-items:center;gap:10px;text-align:left;font:500 15px var(--f-body);color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:11px 12px;cursor:pointer;min-width:0}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt .key{font-family:var(--f-mono);font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:1px 6px;flex:none}
+.opt:disabled{cursor:default}
+.opt.correct{border-color:var(--ok);background:var(--ok-bg)}
+.opt.correct .key{border-color:var(--ok);color:var(--ok)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-bg)}
+.opt.wrong .key{border-color:var(--bad);color:var(--bad)}
+.opt.dim{opacity:.55}
+
+.fb{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.verdict{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin:0;font-weight:500}
+.fb.is-ok .verdict{color:var(--ok)} .fb.is-bad .verdict{color:var(--bad)}
+.fb h3{font-family:var(--f-display);font-weight:700;font-size:1.7rem;text-transform:uppercase;margin:0;line-height:1.05}
+.nl{font-family:var(--f-body);font-weight:400;font-size:.95rem;text-transform:none;color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--line);border-radius:3px;padding:2px 7px;color:var(--muted)}
+.fb p{margin:0;max-width:62ch}
+.conf{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--muted);background:var(--bg);border-radius:4px;padding:6px 10px}
+.conf svg{width:56px;height:auto;flex:none}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:600 14px var(--f-body);border-radius:5px;padding:10px 18px;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--paper)}
+.btn.ghost{background:none;color:var(--ink);border-color:var(--line)}
+.hint{color:var(--muted)}
+
+.end{padding:22px 18px;display:flex;flex-direction:column;gap:16px}
+.big{font-family:var(--f-display);font-weight:700;font-size:clamp(3.5rem,14vw,5.5rem);line-height:.9;margin:0;font-variant-numeric:tabular-nums}
+.big small{font-size:.45em;color:var(--muted)}
+.missed{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.missed li{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:5px;padding:8px 10px;background:var(--paper)}
+.missed svg{width:72px;height:auto;flex:none}
+.missed div{min-width:0}
+.missed strong{display:block}
+.missed span{font-size:13px;color:var(--muted)}
+
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.chipbtn{font:500 13px var(--f-body);color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer}
+.chipbtn[aria-pressed="true"]{color:var(--paper);background:var(--ink);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.tile{background:var(--paper);border:1px solid var(--line);border-radius:6px;overflow:hidden;display:flex;flex-direction:column}
+.tile .plate{padding-block:10px}
+.tile .plate svg{width:100%}
+.tile .txt{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.tile h3{font-family:var(--f-display);font-weight:700;font-size:1.3rem;text-transform:uppercase;margin:0;line-height:1.05}
+.tile p{margin:0;font-size:13.5px;color:var(--muted)}
+footer{color:var(--muted);font-size:12.5px}
+
+.plate.photo{background:var(--ink);padding-block:0}
+.plate.photo img{width:100%;max-height:340px;object-fit:contain;display:block}
+.plate .tag{position:absolute;right:12px;top:10px;background:var(--paper);color:var(--ink);border-radius:3px;padding:2px 7px;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.plate.photo .ref{color:var(--paper);opacity:.8}
+.compare{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.compare svg,.compare img{width:96px;height:68px;border:1px solid var(--line);border-radius:4px;background:var(--paper);object-fit:cover}
+.note{background:var(--paper);border:1px dashed var(--line);border-radius:6px;padding:12px 14px;font-size:13.5px;color:var(--muted);max-width:none}
+.note strong{color:var(--ink)}
+.ph{display:flex;flex-direction:column;gap:8px;padding:10px 14px 0}
+.thumbs{display:flex;flex-wrap:wrap;gap:6px}
+.thumb{position:relative;width:64px;height:64px;border-radius:4px;overflow:hidden;border:1px solid var(--line);background:var(--bg)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{position:absolute;right:2px;top:2px;font:600 11px var(--f-body);border:0;border-radius:3px;background:var(--paper);color:var(--ink);padding:1px 5px;cursor:pointer;opacity:.9}
+.thumb button.confirm{background:var(--bad);color:var(--paper);left:2px}
+.addph{align-self:flex-start;font:500 13px var(--f-body);color:var(--ink);background:none;border:1px dashed var(--muted);border-radius:4px;padding:6px 10px;cursor:pointer}
+.addph:disabled{opacity:.6;cursor:progress}
+.err{color:var(--bad);font-size:12.5px;margin:0}
+.gimg{font:500 13.5px var(--f-body);color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--copper);align-self:flex-start}
+.gimg:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+.sel{font:500 13px var(--f-body);color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:6px 12px;max-width:100%}
+.sel:focus-visible,.search:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+.search{font:400 15px var(--f-body);color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:10px 12px;width:100%}
+.famhead{display:flex;align-items:baseline;gap:10px;margin:8px 0 0;font-family:var(--f-display);font-weight:700;font-size:1.5rem;text-transform:uppercase}
+.famhead span{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:400}
+.imp{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.imp .btn{padding:8px 14px;font-size:13px}
+.progress{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:8px}.progress i{display:block;height:100%;background:var(--copper)}
+.hunt-head{display:flex;flex-direction:column;gap:10px}
+.hunt-bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}.hunt-bar i{display:block;height:100%;background:var(--ok)}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;font-size:13.5px;color:var(--muted)}
+.steps strong{color:var(--ink)}
+.rows{display:flex;flex-direction:column;gap:8px}
+.row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.row.done{border-color:var(--ok)}
+.row.target{outline:2px dashed var(--copper);outline-offset:2px}
+.row.drag{background:var(--bg)}
+.row .mini{width:96px;height:68px;background-color:var(--paper);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:12px 12px;border-radius:4px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.row .mini svg{width:100%;height:auto}.row .mini img{width:100%;height:100%;object-fit:cover}
+.row .info{display:flex;flex-direction:column;gap:6px;min-width:0}
+.row .name{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.row .name strong{font-family:var(--f-display);font-size:1.2rem;text-transform:uppercase;line-height:1.1}
+.row .acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.row .acts a,.row .acts button{font:500 13px var(--f-body);border-radius:4px;padding:6px 10px;cursor:pointer;text-decoration:none;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
+.row .acts .go{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.row .acts .ok{color:var(--ok);border-color:var(--ok);font-family:var(--f-mono);font-size:12px}
+.row .acts a:focus-visible,.row .acts button:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+@media (max-width:480px){.row{grid-template-columns:72px minmax(0,1fr)}.row .mini{width:72px;height:52px}}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* dessins */
+.part .k{stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
+.part .cu{fill:var(--copper)} .part .br{fill:var(--brass)} .part .st{fill:var(--steel)} .part .pv{fill:var(--pvc)}
+.part .pa{fill:var(--paper)} .part .sg{fill:var(--signal)} .part .rb{fill:var(--rubber)} .part .wd{fill:var(--wood)}
+.part .ink{fill:var(--ink)} .part .bl{fill:var(--blue)} .part .yl{fill:var(--yellow)}
+.part .thin{stroke-width:1} .part .txt{fill:var(--ink);font-family:var(--f-mono)} .part .txtl{fill:var(--paper);font-family:var(--f-mono)} .part .soil{fill:var(--soil)} .part .water{fill:var(--water)} .part .no{fill:none}
+.part .dash{stroke-dasharray:4 4}
+.part .hl{fill:none;stroke:var(--paper);stroke-width:3;opacity:.4;stroke-linecap:round}
+@media (prefers-reduced-motion:no-preference){
+  .plate svg.anim{animation:in .25s ease-out}
+  @keyframes in{from{opacity:.4;transform:scale(.97)}to{opacity:1;transform:none}}
+}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div class="titles">
+      <span class="eyebrow">Sanitaire · chauffage · débouchage</span>
+      <h1>Reconnais <span>la pièce</span></h1>
+    </div>
+    <div class="seg" role="group" aria-label="Affichage">
+      <button type="button" id="tab-quiz" data-view="quiz">Quiz</button>
+      <button type="button" id="tab-cat" data-view="cat">Catalogue</button>
+      <button type="button" id="tab-photos" data-view="photos">Photos</button>
+    </div>
+  </header>
+  <main id="app"></main>
+  <footer><span id="count">94</span> pièces · noms en français et en néerlandais · liens vers des photos réelles · touches 1 à 4 pour répondre, Entrée pour continuer.</footer>
+</div>
+<input type="file" id="photo-input" accept="image/*" class="vh" tabindex="-1" aria-hidden="true">
+<input type="file" id="bulk-input" accept="image/jpeg,image/png,image/webp" multiple class="vh" tabindex="-1" aria-hidden="true">
+<input type="file" id="folder-input" webkitdirectory multiple class="vh" tabindex="-1" aria-hidden="true">
+
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+
+const slots = Array.from({length:6},(_,i)=>`<rect class="ink" opacity=".75" x="58" y="${30+i*15}" width="84" height="6" rx="3"/>`).join('');
+
+const FAMS = {raccord:'Raccords & tubes', evac:'Évacuation', robinet:'Robinetterie', sanit:'Sanitaire', chauffage:'Chauffage', outil:'Outils', etanch:'Étanchéité & fixation'};
+
+const PARTS = [
+ {id:'coude', fr:'Coude 90°', nl:'Bocht 90°', fam:'raccord', spec:'Cuivre · Ø 15 mm', conf:'te',
+  info:"Change la direction d'une conduite à angle droit. Sur le cuivre, il se brase ou se soude. Il existe aussi à 45° pour limiter les pertes de charge.",
+  svg:`<path class="cu k" d="M30 50 H90 A40 40 0 0 1 130 90 V120 H100 V90 A10 10 0 0 0 90 80 H30 Z"/><path class="hl" d="M42 58 H88 A32 32 0 0 1 122 90 V108"/><rect class="cu k" x="24" y="45" width="14" height="40" rx="2"/><rect class="cu k" x="95" y="114" width="40" height="14" rx="2"/>`},
+ {id:'te', fr:'Té', nl:'T-stuk', fam:'raccord', spec:'Cuivre · Ø 22 mm', conf:'coude',
+  info:"Crée une dérivation : une arrivée et deux sorties. On l'utilise pour piquer une nouvelle alimentation sur une conduite existante.",
+  svg:`<path class="cu k" d="M20 45 H180 V75 H115 V125 H85 V75 H20 Z"/><path class="hl" d="M30 53 H170"/><rect class="cu k" x="14" y="41" width="14" height="38" rx="2"/><rect class="cu k" x="172" y="41" width="14" height="38" rx="2"/><rect class="cu k" x="81" y="115" width="38" height="14" rx="2"/>`},
+ {id:'manchon', fr:'Manchon', nl:'Mof', fam:'raccord', spec:'Cuivre · Ø 15 mm', conf:'sertir',
+  info:"Relie deux tubes du même diamètre en ligne droite. Classique pour réparer une fuite après avoir coupé le morceau abîmé.",
+  svg:`<rect class="cu k" x="8" y="57" width="62" height="26"/><rect class="cu k" x="130" y="57" width="62" height="26"/><rect class="cu k" x="58" y="49" width="84" height="42" rx="3"/><path class="hl" d="M66 57 H134"/><line class="k dash" x1="100" y1="49" x2="100" y2="91"/>`},
+ {id:'reduction', fr:'Réduction', nl:'Verloopstuk', fam:'raccord', spec:'Cuivre · Ø 22 → 15 mm', conf:'manchon',
+  info:"Raccorde deux tubes de diamètres différents, par exemple du 22 mm vers du 15 mm, quand on passe d'une conduite principale à une alimentation d'appareil.",
+  svg:`<path class="cu k" d="M25 38 H85 L115 56 H175 V84 H115 L85 102 H25 Z"/><line class="k" x1="85" y1="38" x2="85" y2="102"/><line class="k" x1="115" y1="56" x2="115" y2="84"/><path class="hl" d="M33 47 H80 M122 63 H168"/>`},
+ {id:'compression', fr:'Raccord à compression', nl:'Knelkoppeling', fam:'raccord', spec:'Laiton · Ø 15 mm', conf:'sertir',
+  info:"Se monte sans soudure : l'écrou serre une bague, l'olive, sur le tube. Pratique en dépannage ou là où on ne peut pas chauffer.",
+  svg:`<rect class="cu k" x="4" y="62" width="44" height="16"/><rect class="cu k" x="152" y="62" width="44" height="16"/><polygon class="br k" points="74,52 126,52 130,60 130,80 126,88 74,88 70,80 70,60"/><polygon class="br k" points="40,48 70,48 74,56 74,84 70,92 40,92 36,84 36,56"/><polygon class="br k" points="130,48 160,48 164,56 164,84 160,92 130,92 126,84 126,56"/><line class="k" x1="38" y1="60" x2="72" y2="60"/><line class="k" x1="38" y1="80" x2="72" y2="80"/><line class="k" x1="128" y1="60" x2="162" y2="60"/><line class="k" x1="128" y1="80" x2="162" y2="80"/><ellipse class="br k" cx="100" cy="22" rx="16" ry="8"/><line class="k dash" x1="100" y1="30" x2="100" y2="50"/>`},
+ {id:'sertir', fr:'Raccord à sertir', nl:'Persfitting', fam:'raccord', spec:'Cuivre · profil V · Ø 18 mm', conf:'manchon',
+  info:"Se fixe avec une pince à sertir, sans flamme. Le bourrelet contient un joint torique que les mâchoires écrasent. Rapide, mais l'outillage coûte cher.",
+  svg:`<rect class="cu k" x="4" y="60" width="60" height="20"/><rect class="cu k" x="136" y="60" width="60" height="20"/><rect class="cu k" x="40" y="56" width="120" height="28" rx="3"/><ellipse class="cu k" cx="56" cy="70" rx="9" ry="19"/><ellipse class="cu k" cx="144" cy="70" rx="9" ry="19"/><path class="hl" d="M68 62 H132"/><circle class="sg k" cx="100" cy="70" r="4"/>`},
+ {id:'flexible', fr:'Flexible de raccordement', nl:'Flexibele aansluitslang', fam:'raccord', spec:'Inox tressé · 3/8" · 50 cm', conf:'compression',
+  info:"Tuyau tressé inox avec écrous, entre l'arrivée d'eau et un robinet ou un chauffe-eau. Rouillé ou gonflé, il faut le changer : c'est une cause fréquente de dégât des eaux.",
+  svg:`<path d="M40 70 C70 70 70 30 100 30 C130 30 130 110 160 110" style="fill:none;stroke:var(--steel);stroke-width:14"/><path d="M40 70 C70 70 70 30 100 30 C130 30 130 110 160 110" style="fill:none;stroke:var(--ink);stroke-width:14;stroke-dasharray:1.5 3;opacity:.45"/><rect class="br k" x="12" y="58" width="30" height="24" rx="2"/><line class="k" x1="12" y1="70" x2="42" y2="70"/><rect class="br k" x="158" y="98" width="30" height="24" rx="2"/><line class="k" x1="158" y1="110" x2="188" y2="110"/>`},
+ {id:'vanne', fr:'Vanne quart de tour', nl:'Kogelkraan', fam:'robinet', spec:'Laiton · 1/2" F/F', conf:'clapet',
+  info:"Ouvre ou ferme l'eau en un quart de tour. Levier dans l'axe du tuyau : ouvert. Levier en travers : fermé.",
+  svg:`<rect class="br k" x="20" y="62" width="160" height="32" rx="3"/><line class="k" x1="44" y1="62" x2="44" y2="94"/><line class="k" x1="156" y1="62" x2="156" y2="94"/><circle class="br k" cx="100" cy="78" r="28"/><rect class="st k" x="95" y="38" width="10" height="16"/><rect class="sg k" x="92" y="24" width="92" height="16" rx="8"/><circle class="st k" cx="100" cy="32" r="4"/>`},
+ {id:'clapet', fr:'Clapet anti-retour', nl:'Terugslagklep', fam:'robinet', spec:'Laiton · 3/4"', conf:'vanne',
+  info:"Laisse passer l'eau dans un seul sens, celui de la flèche sur le corps. Il empêche l'eau de l'installation de repartir vers le réseau.",
+  svg:`<rect class="br k" x="20" y="60" width="160" height="34" rx="3"/><line class="k" x1="44" y1="60" x2="44" y2="94"/><line class="k" x1="156" y1="60" x2="156" y2="94"/><rect class="br k" x="58" y="48" width="84" height="58" rx="8"/><polygon class="ink" points="70,73 114,73 114,63 134,77 114,91 114,81 70,81"/>`},
+ {id:'reducteur', fr:'Réducteur de pression', nl:'Drukregelaar', fam:'robinet', spec:'Laiton · réglable 1 à 6 bar', conf:'vanne',
+  info:"Abaisse et stabilise la pression qui arrive du réseau, souvent réglée autour de 3 bar. On le reconnaît à sa cloche avec vis de réglage et à son manomètre.",
+  svg:`<path class="br k" d="M70 72 V40 Q70 22 100 22 Q130 22 130 40 V72 Z"/><rect class="st k" x="92" y="10" width="16" height="14" rx="2"/><rect class="br k" x="20" y="72" width="160" height="30" rx="3"/><line class="k" x1="44" y1="72" x2="44" y2="102"/><line class="k" x1="156" y1="72" x2="156" y2="102"/><rect class="st k" x="96" y="102" width="8" height="6"/><circle class="pa k" cx="100" cy="122" r="15"/><line class="k" x1="100" y1="122" x2="108" y2="113"/><circle class="ink" cx="100" cy="122" r="2"/>`},
+ {id:'thermo', fr:'Robinet thermostatique', nl:'Thermostatische radiatorkraan', fam:'robinet', spec:'Équerre · 1/2"', conf:'purge',
+  info:"Règle la température d'une pièce : la tête graduée ouvre plus ou moins le radiateur selon la chaleur ambiante.",
+  svg:`<rect class="pa k" x="66" y="8" width="64" height="72" rx="12"/><line class="k" x1="80" y1="40" x2="80" y2="76"/><line class="k" x1="92" y1="40" x2="92" y2="76"/><line class="k" x1="104" y1="40" x2="104" y2="76"/><line class="k" x1="116" y1="40" x2="116" y2="76"/><polygon class="ink" points="93,16 103,16 98,24"/><rect class="st k" x="74" y="78" width="48" height="10"/><rect class="br k" x="114" y="92" width="70" height="18"/><rect class="br k" x="82" y="88" width="32" height="26" rx="3"/><rect class="br k" x="132" y="86" width="14" height="30" rx="2"/><rect class="cu k" x="88" y="114" width="20" height="26"/>`},
+ {id:'sterput', fr:'Sterput', nl:'Sterfput', fam:'evac', spec:'PVC · 150 × 150 mm', conf:'regard',
+  info:"Avaloir de sol à grille, dans une cave, une cour ou une buanderie. Son siphon intégré bloque les odeurs d'égout. C'est un des points d'intervention les plus fréquents en débouchage.",
+  svg:`<rect class="pv k" x="35" y="8" width="130" height="124" rx="6"/><rect class="st k" x="48" y="20" width="104" height="100" rx="2"/>${slots}`},
+ {id:'regard', fr:'Chambre de visite', nl:'Toezichtsput', fam:'evac', spec:'Béton · 40 × 40 cm', conf:'sterput',
+  info:"Chambre enterrée qui donne accès à l'égout de la maison. C'est par là qu'on passe la caméra d'inspection ou qu'on débouche la conduite vers la rue.",
+  svg:`<rect class="soil" x="0" y="30" width="200" height="110"/><line class="k" x1="0" y1="30" x2="200" y2="30"/><rect class="pv k" x="52" y="30" width="96" height="96"/><rect class="pa k" x="62" y="30" width="76" height="86"/><rect class="water" x="63" y="104" width="74" height="11"/><rect class="pv k" x="0" y="92" width="62" height="16"/><rect class="pv k" x="138" y="98" width="62" height="16"/><rect class="st k" x="46" y="22" width="108" height="10" rx="2"/>`},
+ {id:'siphon', fr:'Siphon bouteille', nl:'Flessensifon', fam:'evac', spec:'Ø 32 mm · lavabo', conf:'sterput',
+  info:"Sous le lavabo ou l'évier, il garde un peu d'eau qui bloque les odeurs. Le bas se dévisse : c'est le premier endroit à vérifier quand ça s'écoule mal.",
+  svg:`<rect class="st k" x="88" y="6" width="24" height="46"/><rect class="st k" x="126" y="66" width="70" height="18"/><rect class="st k" x="72" y="50" width="56" height="80" rx="16"/><rect class="st k" x="68" y="48" width="64" height="12" rx="3"/><rect class="st k" x="124" y="62" width="10" height="26" rx="2"/><path class="hl" d="M82 70 V116"/>`},
+ {id:'furet', fr:'Furet', nl:'Ontstoppingsveer', fam:'outil', spec:'Manuel · 10 m · Ø 8 mm', conf:'ventouse',
+  info:"Câble en spirale qu'on fait tourner dans la conduite pour casser ou accrocher le bouchon. Manuel pour les lavabos, électrique pour les égouts.",
+  svg:`<circle class="sg k" cx="72" cy="74" r="50"/><circle class="pa k" cx="72" cy="74" r="16"/><path d="M118 90 C140 100 150 118 190 118" style="fill:none;stroke:var(--steel);stroke-width:9"/><path d="M118 90 C140 100 150 118 190 118" style="fill:none;stroke:var(--ink);stroke-width:9;stroke-dasharray:2 3;opacity:.6"/><circle class="st k" cx="191" cy="118" r="6"/><rect class="st k" x="68" y="16" width="8" height="58"/><rect class="rb k" x="60" y="6" width="24" height="14" rx="7"/>`},
+ {id:'ventouse', fr:'Ventouse', nl:'Ontstopper (plopper)', fam:'outil', spec:'Caoutchouc · Ø 150 mm', conf:'furet',
+  info:"En poussant et tirant, elle crée une pression qui décolle le bouchon. C'est le premier geste pour un WC ou un évier, avant de sortir le furet.",
+  svg:`<rect class="wd k" x="93" y="6" width="14" height="86" rx="4"/><path class="rb k" d="M44 128 Q44 84 100 84 Q156 84 156 128 Z"/><rect class="rb k" x="88" y="74" width="24" height="16" rx="3"/>`},
+ {id:'coupetube', fr:'Coupe-tube', nl:'Pijpsnijder', fam:'outil', spec:'Cuivre · 3 à 32 mm', conf:null,
+  info:"Coupe le cuivre bien droit : on serre un peu, on fait un tour, on resserre. Pas de limaille ni de bavure comme avec une scie.",
+  svg:`<path class="sg k" fill-rule="evenodd" d="M56 30 H144 Q156 30 156 42 V98 Q156 110 144 110 H56 Q44 110 44 98 V42 Q44 30 56 30 Z M60 44 V96 H140 V44 Z"/><circle class="cu k" cx="100" cy="72" r="12"/><circle class="pa k" cx="100" cy="72" r="8"/><circle class="st k" cx="100" cy="52" r="8"/><circle class="st k" cx="89" cy="89" r="5"/><circle class="st k" cx="111" cy="89" r="5"/><rect class="st k" x="95" y="94" width="10" height="30"/><rect class="sg k" x="78" y="120" width="44" height="16" rx="6"/>`},
+ {id:'purge', fr:'Clé de purge', nl:'Ontluchtingssleutel', fam:'outil', spec:'Carré 5 mm', conf:'thermo',
+  info:"Ouvre la vis de purge d'un radiateur pour laisser sortir l'air. Un radiateur froid en haut et chaud en bas a souvent besoin d'une purge.",
+  svg:`<circle cx="58" cy="70" r="24" style="fill:none;stroke:var(--brass);stroke-width:12"/><circle class="no k" cx="58" cy="70" r="30"/><circle class="no k" cx="58" cy="70" r="18"/><rect class="br k" x="86" y="63" width="78" height="14"/><rect class="br k" x="160" y="56" width="26" height="28" rx="2"/><rect class="pa k" x="167" y="64" width="12" height="12"/>`}
+];
+/* ---------- aides de dessin ---------- */
+const R=(x,y,w,h,c='',rx=0)=>`<rect class="${c} k" x="${x}" y="${y}" width="${w}" height="${h}"${rx?` rx="${rx}"`:''}/>`;
+const C=(x,y,r,c='')=>`<circle class="${c} k" cx="${x}" cy="${y}" r="${r}"/>`;
+const E=(x,y,rx,ry,c='')=>`<ellipse class="${c} k" cx="${x}" cy="${y}" rx="${rx}" ry="${ry}"/>`;
+const P=(d,c='no')=>`<path class="${c} k" d="${d}"/>`;
+const L=(x1,y1,x2,y2,c='')=>`<line class="k ${c}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+const G=(pts,c='')=>`<polygon class="${c} k" points="${pts}"/>`;
+const HL=d=>`<path class="hl" d="${d}"/>`;
+const ST=(d,col,w,extra='')=>`<path d="${d}" style="fill:none;stroke:var(--${col});stroke-width:${w}${extra}"/>`;
+const RING=(x,y,r,col,w)=>`<circle cx="${x}" cy="${y}" r="${r}" style="fill:none;stroke:var(--${col});stroke-width:${w}"/>`;
+const TX=(x,y,s,t,c='txt')=>`<text class="${c}" x="${x}" y="${y}" font-size="${s}" text-anchor="middle">${t}</text>`;
+const THR=(x,y,w,h)=>{let s='';for(let i=3;i<w-2;i+=5)s+=`<line class="k thin" x1="${x+i}" y1="${y}" x2="${x+i+3}" y2="${y+h}"/>`;return s;};
+const NUT=(x,y,w,h,c='br')=>G(`${x},${y+4} ${x+4},${y} ${x+w-4},${y} ${x+w},${y+4} ${x+w},${y+h-4} ${x+w-4},${y+h} ${x+4},${y+h} ${x},${y+h-4}`,c)+L(x,y+h*.3,x+w,y+h*.3,'thin')+L(x,y+h*.7,x+w,y+h*.7,'thin');
+const RIBS=(x1,x2,y1,y2,step=6)=>{let s='';for(let x=x1;x<=x2;x+=step)s+=L(x,y1,x,y2,'thin');return s;};
+const RIBSH=(y1,y2,x1,x2,step=6)=>{let s='';for(let y=y1;y<=y2;y+=step)s+=L(x1,y,x2,y,'thin');return s;};
+
+const MORE = [
+/* ===== Raccords & tubes ===== */
+{id:'coude45', fr:'Coude 45°', nl:'Bocht 45°', fam:'raccord', spec:'Cuivre · Ø 15 mm', conf:'coude', q:'coude cuivre 45° à souder',
+ info:"Change la direction d'une conduite de 45° seulement. Deux coudes à 45° remplacent un coude à 90° quand on veut limiter les pertes de charge ou contourner un obstacle.",
+ svg:P('M20 70 H88 L140 18 L160 38 L100 98 H20 Z','cu')+G('131,21 139,13 165,39 157,47','cu')+R(14,66,14,36,'cu',2)+HL('M30 78 H90 L132 36')},
+{id:'union', fr:'Raccord union 3 pièces', nl:'Driedelige koppeling', fam:'raccord', spec:'Laiton · 3/4" F/F', conf:'compression', q:'raccord union 3 pièces laiton',
+ info:"Permet de démonter une partie de l'installation sans tourner les tuyaux : on dévisse seulement l'écrou central. On le place par exemple à côté d'un circulateur ou d'un filtre.",
+ svg:R(4,60,30,20,'cu')+R(166,60,30,20,'cu')+NUT(30,52,32,36)+NUT(130,52,40,36)+NUT(60,40,72,60)+L(96,40,96,100,'thin dash')},
+{id:'mamelon', fr:'Mamelon', nl:'Dubbele nippel', fam:'raccord', spec:'Laiton · 1/2" M/M', conf:'bouchonm',
+ q:'mamelon laiton mâle mâle', info:"Pièce filetée mâle des deux côtés avec un six-pans au milieu. Elle relie deux pièces femelles, par exemple une vanne et un raccord.",
+ svg:R(20,56,62,28,'br')+THR(20,56,62,28)+R(118,56,62,28,'br')+THR(118,56,62,28)+NUT(80,44,40,52)},
+{id:'bouchonf', fr:'Bouchon femelle', nl:'Kap', fam:'raccord', spec:'Laiton · 1/2" F', conf:'bouchonm', q:'bouchon femelle laiton plomberie',
+ info:"Se visse sur un filetage mâle pour fermer une sortie. On l'utilise pour condamner une attente en attendant de poser l'appareil.",
+ svg:R(10,56,90,28,'br')+THR(60,56,40,28)+NUT(96,40,52,60)+P('M148 44 H156 Q168 44 168 56 V84 Q168 96 156 96 H148 Z','br')},
+{id:'bouchonm', fr:'Bouchon mâle', nl:'Stop', fam:'raccord', spec:'Laiton · 1/2" M', conf:'bouchonf', q:'bouchon mâle laiton tête hexagonale',
+ info:"Bouchon fileté mâle, à visser dans une sortie femelle. On l'étanche avec du téflon ou de la filasse.",
+ svg:R(50,52,86,36,'br')+THR(50,52,86,36)+NUT(132,38,30,64)},
+{id:'reducmf', fr:'Réduction mâle-femelle', nl:'Verloopnippel', fam:'raccord', spec:'Laiton · 3/4" M → 1/2" F', conf:'reduction', q:'réduction laiton mâle femelle',
+ info:"Passe d'un filetage à un autre plus petit sans soudure. Le côté mâle se visse dans la sortie la plus grande, le côté femelle reçoit la pièce plus petite.",
+ svg:R(30,46,64,48,'br')+THR(30,46,64,48)+NUT(92,36,70,68)},
+{id:'coudemf', fr:'Coude laiton mâle-femelle', nl:'Knie M/V', fam:'raccord', spec:'Laiton · 1/2" M/F', conf:'coude', q:'coude laiton mâle femelle 90',
+ info:"Coude fileté : un côté mâle, un côté femelle. Il sert à tourner à 90° sur une installation vissée, sans souder.",
+ svg:P('M40 40 H120 V112 H88 V72 H40 Z','br')+R(10,44,32,24,'br')+THR(10,44,32,24)+R(84,106,40,20,'br',2)},
+{id:'croix', fr:'Croix', nl:'Kruisstuk', fam:'raccord', spec:'Cuivre · Ø 15 mm', conf:'te', q:'croix cuivre à souder raccord 4 voies',
+ info:"Raccord à quatre départs. Plus rare que le té, on le trouve sur des distributions où plusieurs conduites partent du même point.",
+ svg:P('M20 55 H85 V18 H115 V55 H180 V85 H115 V122 H85 V85 H20 Z','cu')+R(14,51,14,38,'cu',2)+R(172,51,14,38,'cu',2)+R(81,12,38,14,'cu',2)+R(81,114,38,14,'cu',2)},
+{id:'multisertir', fr:'Raccord multicouche à sertir', nl:'Meerlagen persfitting', fam:'raccord', spec:'Laiton + inox · 16 × 2', conf:'sertir', q:'raccord multicouche à sertir',
+ info:"Raccord pour tube multicouche : une douille inox est sertie autour du tube. La bague plastique de couleur indique le profil des mâchoires à utiliser.",
+ svg:R(4,60,40,20,'pa')+R(156,60,40,20,'pa')+R(40,52,40,36,'st',3)+R(120,52,40,36,'st',3)+R(36,50,8,40,'bl',2)+R(156,50,8,40,'bl',2)+NUT(78,50,44,40)},
+{id:'multicouche', fr:'Tube multicouche', nl:'Meerlagenbuis', fam:'raccord', spec:'PE-RT / alu / PE-RT · 16 × 2', conf:'per', q:'tube multicouche plomberie couronne',
+ info:"Tube plastique avec une couche d'aluminium au milieu : il se cintre à la main et garde sa forme. Très utilisé en rénovation pour l'eau et le chauffage.",
+ svg:R(10,50,140,26,'pa')+TX(80,67,10,'16 × 2')+C(166,63,24,'pa')+RING(166,63,18,'steel',4)+C(166,63,12,'pa')},
+{id:'tubecu', fr:'Tube cuivre', nl:'Koperbuis', fam:'raccord', spec:'Écroui · barre de 5 m', conf:'multicouche', q:'tube cuivre plomberie barre',
+ info:"Le classique de la plomberie. En barre (écroui, rigide) ou en couronne (recuit, souple). Il se brase, se soude ou se sertit.",
+ svg:R(10,28,150,22,'cu')+E(160,39,7,11,'cu')+E(160,39,4,8,'pa')+R(10,62,150,22,'cu')+E(160,73,7,11,'cu')+E(160,73,4,8,'pa')+R(10,96,150,22,'cu')+E(160,107,7,11,'cu')+E(160,107,4,8,'pa')+HL('M20 34 H150 M20 68 H150 M20 102 H150')},
+{id:'per', fr:'Tube PER gainé', nl:'PEX-buis (mantelbuis)', fam:'raccord', spec:'PER Ø 16 · gaine rouge', conf:'multicouche', q:'tube PER gainé rouge couronne',
+ info:"Tube en polyéthylène réticulé, souple, souvent livré dans une gaine rouge (eau chaude) ou bleue (eau froide). La gaine permet de le remplacer sans casser le mur.",
+ svg:RING(90,72,50,'signal',9)+RING(90,72,38,'signal',9)+RING(90,72,26,'signal',9)+ST('M140 72 C160 72 170 90 192 92','signal',9)},
+{id:'pushfit', fr:'Raccord instantané', nl:'Insteekkoppeling', fam:'raccord', spec:'Push-fit · Ø 15 mm', conf:'compression', q:'raccord instantané push fit plomberie',
+ info:"On enfonce le tube et c'est étanche, sans outil ni flamme. Une bague de déverrouillage permet de le retirer. Pratique en dépannage.",
+ svg:R(4,58,40,24,'cu')+R(156,58,40,24,'cu')+R(60,50,80,40,'pv',6)+R(40,46,24,48,'pa',4)+R(136,46,24,48,'pa',4)},
+{id:'applique', fr:'Applique murale', nl:'Muurplaat', fam:'raccord', spec:'Laiton · 1/2" F · Ø 16', conf:'coudemf', q:'applique murale plomberie robinet',
+ info:"Coude à pattes vissé au mur, avec une sortie femelle. C'est là qu'on raccorde un robinet de machine à laver ou une douche en saillie.",
+ svg:R(30,30,140,30,'br',10)+C(48,45,5,'pa')+C(152,45,5,'pa')+C(100,45,22,'br')+C(100,45,12,'pa')+R(88,67,24,66,'cu')},
+
+/* ===== Évacuation ===== */
+{id:'pvc', fr:'Tube PVC d’évacuation', nl:'PVC-afvoerbuis', fam:'evac', spec:'Gris · Ø 110 mm', conf:'descente', q:'tube PVC évacuation gris 110',
+ info:"Tube gris pour les eaux usées et les eaux-vannes. Il se colle. Diamètres courants : 40 ou 50 mm pour lavabos et douches, 110 mm pour le WC et la colonne.",
+ svg:R(10,46,160,40,'pv')+E(170,66,9,20,'pv')+E(170,66,6,16,'pa')+HL('M20 54 H160')},
+{id:'coudepvc', fr:'Coude PVC', nl:'PVC-bocht', fam:'evac', spec:'Gris · 87° · Ø 50', conf:'culotte', q:'coude PVC évacuation 87',
+ info:"Coude à coller pour l'évacuation. En évacuation, on préfère deux coudes à 45° à un seul coude serré : l'eau et les déchets passent mieux, moins de bouchons.",
+ svg:P('M30 50 H90 A40 40 0 0 1 130 90 V120 H100 V90 A10 10 0 0 0 90 80 H30 Z','pv')+R(20,42,18,46,'pv',2)+R(92,112,46,18,'pv',2)},
+{id:'culotte', fr:'Culotte PVC', nl:'PVC-T 45° (Y-stuk)', fam:'evac', spec:'Gris · 45° · Ø 110', conf:'te', q:'culotte PVC 45 degrés évacuation',
+ info:"Embranchement en Y pour raccorder une évacuation sur une autre. L'angle de 45° guide l'eau dans le sens de l'écoulement, contrairement à un té à 90°.",
+ svg:G('80,74 122,32 143,53 116,74','pv')+G('118,28 128,18 153,43 143,53','pv')+R(16,74,168,32,'pv')+R(6,70,16,40,'pv',2)+R(178,70,16,40,'pv',2)},
+{id:'manchonpvc', fr:'Manchon PVC', nl:'PVC-mof', fam:'evac', spec:'Gris · Ø 110', conf:'manchon', q:'manchon PVC évacuation',
+ info:"Relie deux tubes PVC bout à bout. On colle les deux côtés après avoir dépoli et nettoyé les surfaces.",
+ svg:R(4,48,52,44,'pv')+R(144,48,52,44,'pv')+R(50,40,100,60,'pv',3)+L(100,40,100,100,'dash')},
+{id:'tampon', fr:'Té de visite', nl:'Ontstoppingsstuk', fam:'evac', spec:'Gris · Ø 110 · bouchon vissé', conf:'regard', q:'tampon de visite PVC bouchon dégorgement',
+ info:"Pièce avec un bouchon dévissable qui donne accès à l'intérieur de la canalisation. C'est par là qu'on passe le furet sans démonter la colonne.",
+ svg:R(78,34,44,44,'pv')+R(10,74,180,34,'pv')+R(70,20,60,18,'pv',3)+RIBS(78,122,22,36,7)},
+{id:'reducpvc', fr:'Réduction PVC', nl:'PVC-verloopstuk', fam:'evac', spec:'Gris · Ø 50 → 40', conf:'reduction', q:'réduction PVC évacuation',
+ info:"Passe d'un diamètre d'évacuation à un autre. Attention au sens : on passe toujours du petit au grand dans le sens de l'écoulement.",
+ svg:P('M20 36 H84 L118 54 H180 V86 H118 L84 104 H20 Z','pv')+L(84,36,84,104)+L(118,54,118,86)},
+{id:'aerateur', fr:'Clapet aérateur', nl:'Beluchter', fam:'evac', spec:'Membrane · Ø 50/110', conf:'clapet', q:'clapet aérateur évacuation membrane',
+ info:"Laisse entrer l'air dans l'évacuation sans laisser sortir les odeurs. Il évite que les siphons se vident quand une grosse quantité d'eau descend.",
+ svg:R(80,70,40,64,'pv')+P('M62 70 V50 Q62 26 100 26 Q138 26 138 50 V70 Z','pa')+RIBSH(46,64,66,134,6)},
+{id:'collepvc', fr:'Colle PVC', nl:'PVC-lijm', fam:'evac', spec:'Pot avec pinceau', conf:'filasse', q:'colle PVC pot pinceau',
+ info:"Soude chimiquement le PVC. On dépolit et on dégraisse avant d'encoller les deux pièces, puis on emboîte en une fois.",
+ svg:R(60,40,80,92,'sg',4)+R(56,30,88,14,'st',3)+R(96,8,8,24,'st')+R(66,62,68,40,'pa',2)+L(76,76,124,76,'thin')+L(76,86,114,86,'thin')},
+{id:'cliptube', fr:'Collier clip', nl:'Buisclip', fam:'evac', spec:'Plastique · Ø 40', conf:'atlas', q:'collier clip tube PVC fixation',
+ info:"Fixation en plastique dans laquelle on clipse le tube. On en pose régulièrement pour que le tube ne pende pas et garde sa pente.",
+ svg:ST('M70 92 A34 34 0 1 1 130 92','pvc',10)+C(100,66,26,'pv')+C(100,66,20,'pa')+R(78,100,44,16,'pv',3)+R(96,116,8,20,'st')},
+{id:'bondedouche', fr:'Bonde de douche', nl:'Doucheputje', fam:'evac', spec:'Grille ronde · Ø 90', conf:'sterput', q:'bonde de douche grille ronde',
+ info:"Évacuation au fond du bac de douche, avec un petit siphon intégré. Les cheveux s'y accumulent : on retire la grille et le panier pour nettoyer.",
+ svg:C(100,70,56,'st')+C(100,70,46,'st')+RING(100,70,36,'ink',3)+RING(100,70,26,'ink',3)+RING(100,70,16,'ink',3)+C(100,70,6,'st')},
+{id:'clicclac', fr:'Bonde clic-clac', nl:'Clickwaste', fam:'evac', spec:'Laiton chromé · 1"1/4', conf:'siphon', q:'bonde clic clac lavabo',
+ info:"Bonde de lavabo qui s'ouvre et se ferme en appuyant sur le bouchon. Quand le lavabo s'écoule mal, on la dévisse pour la nettoyer.",
+ svg:P('M54 36 Q100 6 146 36 Z','st')+R(84,36,32,72,'st')+THR(84,56,32,40)+NUT(66,66,68,14,'st')+R(88,108,24,26,'st')},
+{id:'vidagebain', fr:'Vidage de baignoire', nl:'Badafvoerset', fam:'evac', spec:'Câble · trop-plein', conf:'clicclac', q:'vidage baignoire câble trop plein',
+ info:"Ensemble bonde + trop-plein de la baignoire. La poignée du trop-plein actionne la bonde par un câble. Le trop-plein empêche l'eau de déborder.",
+ svg:R(34,40,14,74,'st')+R(34,104,120,16,'st')+C(40,30,18,'st')+C(40,30,7,'pa')+C(130,96,16,'st')+R(122,112,16,24,'st')},
+{id:'caniveau', fr:'Caniveau de douche', nl:'Douchegoot', fam:'evac', spec:'Inox · 70 cm', conf:'bondedouche', q:'caniveau de douche italienne inox',
+ info:"Évacuation longue et étroite, posée au sol des douches à l'italienne. Il demande une pente du sol vers le caniveau.",
+ svg:R(10,56,180,30,'st',4)+R(18,62,164,18,'pa')+RIBS(24,176,64,78,8)+R(92,86,16,32,'pv')},
+{id:'manchettewc', fr:'Pipe de WC', nl:'Closetmanchet', fam:'evac', spec:'Ø 110 · joint à lèvres', conf:'coudepvc', q:'pipe WC manchette évacuation',
+ info:"Raccorde la sortie de la cuvette au tuyau d'évacuation de 110. Le joint caoutchouc doit être bien emboîté, sinon ça fuit et ça sent.",
+ svg:P('M30 40 H110 Q150 40 150 80 V130 H110 V84 Q110 80 106 80 H30 Z','pa')+R(20,34,16,52,'rb',4)},
+{id:'descente', fr:'Descente d’eau pluviale', nl:'Regenpijp', fam:'evac', spec:'Zinc · Ø 80', conf:'pvc', q:'descente eau pluviale zinc gouttière',
+ info:"Tuyau vertical qui amène l'eau de la gouttière vers l'égout ou la citerne. Feuilles et mousse la bouchent souvent en automne.",
+ svg:P('M10 12 H190 V20 Q190 34 176 34 H24 Q10 34 10 20 Z','st')+G('88,34 112,34 108,46 92,46','st')+R(90,46,20,90,'st')+R(84,72,32,6,'st')+R(84,110,32,6,'st')},
+{id:'pompe', fr:'Pompe de relevage', nl:'Dompelpomp', fam:'evac', spec:'Avec flotteur · 400 W', conf:'circulateur', q:'pompe de relevage eaux usées flotteur',
+ info:"Pompe posée au fond d'un puits, qui remonte les eaux usées quand elles sont plus basses que l'égout, par exemple dans une cave. Le flotteur la met en marche.",
+ svg:R(66,46,68,74,'pv',8)+R(60,112,80,16,'pv',4)+R(92,24,16,24,'pv')+ST('M126 52 Q160 40 156 64','ink',2)+E(156,80,12,18,'sg')},
+
+/* ===== Robinetterie ===== */
+{id:'arret', fr:'Robinet d’arrêt à volant', nl:'Stopkraan', fam:'robinet', spec:'Laiton · 3/4"', conf:'vanne', q:'robinet d’arrêt à volant laiton',
+ info:"Ancien modèle de robinet d'arrêt : on tourne le volant plusieurs tours pour fermer. Il est souvent grippé dans les vieilles maisons.",
+ svg:R(20,80,160,30,'br',3)+C(100,95,24,'br')+R(88,52,24,30,'br')+R(97,36,6,18,'st')+E(100,34,42,8,'sg')+L(44,80,44,110)+L(156,80,156,110)},
+{id:'equerre', fr:'Robinet d’équerre', nl:'Hoekstopkraan', fam:'robinet', spec:'Chromé · 1/2" × 3/8"', conf:'vanne', q:'robinet d’équerre chromé sous évier',
+ info:"Petit robinet chromé sous l'évier, le lavabo ou le WC. Il coupe l'eau d'un seul appareil sans fermer toute la maison.",
+ svg:R(10,40,14,60,'st',3)+R(24,62,32,16,'st')+C(70,70,20,'st')+R(62,18,16,34,'st')+R(90,58,40,24,'st',6)+RIBS(96,124,60,80,6)},
+{id:'jardin', fr:'Robinet de jardin', nl:'Buitenkraan', fam:'robinet', spec:'Laiton · 1/2" · nez fileté', conf:'arret', q:'robinet de jardin laiton extérieur',
+ info:"Robinet extérieur avec un nez où l'on visse le tuyau d'arrosage. Avant l'hiver, on ferme le robinet d'arrêt intérieur et on le vide pour éviter le gel.",
+ svg:L(10,30,10,120)+R(10,52,40,24,'br')+C(80,64,22,'br')+R(72,82,16,30,'br')+R(70,110,20,20,'br')+RIBSH(114,128,70,90,4)+R(76,22,8,20,'st')+G('58,14 102,14 98,24 62,24','sg')},
+{id:'manometre', fr:'Manomètre', nl:'Manometer', fam:'robinet', spec:'0 à 4 bar · 1/4"', conf:'compteur', q:'manomètre chauffage 4 bar',
+ info:"Affiche la pression. Sur une installation de chauffage, on vérifie qu'elle reste autour de 1,5 bar à froid.",
+ svg:C(100,62,52,'st')+C(100,62,44,'pa')+TX(100,96,10,'bar')+L(64,62,72,62)+L(128,62,136,62)+L(100,26,100,34)+L(75,37,80,42)+L(125,37,120,42)+L(100,62,82,44)+C(100,62,4,'ink')+R(92,114,16,22,'br')},
+{id:'compteur', fr:'Compteur d’eau', nl:'Watermeter', fam:'robinet', spec:'Laiton · DN 20', conf:'manometre', q:'compteur d’eau habitation',
+ info:"Mesure l'eau consommée. Il appartient au distributeur (à Bruxelles, Vivaqua). Juste avant et après, on trouve les robinets d'arrêt de la maison.",
+ svg:R(20,86,160,24,'br')+NUT(6,82,22,32)+NUT(172,82,22,32)+C(100,56,40,'br')+C(100,56,32,'pa')+R(80,40,40,12,'pa',2)+TX(100,50,9,'0 0 1 2 3')+C(88,68,6,'no')+C(112,68,6,'no')},
+{id:'filtre', fr:'Filtre à eau', nl:'Waterfilter', fam:'robinet', spec:'Cartouche 10" · 3/4"', conf:'adoucisseur', q:'filtre à eau anti impuretés cartouche',
+ info:"Retient le sable et les particules à l'entrée de la maison. On change ou on rince la cartouche régulièrement.",
+ svg:R(10,26,32,14,'br')+R(158,26,32,14,'br')+R(40,18,120,28,'pv',4)+`<rect class="water k" x="64" y="46" width="72" height="86" rx="10" style="fill-opacity:.5"/>`+R(82,56,36,66,'pa',4)+RIBSH(62,116,84,116,6)},
+{id:'adoucisseur', fr:'Adoucisseur', nl:'Waterontharder', fam:'robinet', spec:'Résine · bac à sel', conf:'filtre', q:'adoucisseur d’eau maison',
+ info:"Retire le calcaire de l'eau grâce à une résine, régénérée avec du sel. L'eau de Bruxelles est assez dure, l'appareil y est courant.",
+ svg:R(40,30,120,104,'pa',8)+L(40,52,160,52)+R(70,12,60,22,'pv',4)+R(84,16,32,12,'ink',2)},
+{id:'vanne3v', fr:'Vanne 3 voies', nl:'Driewegkraan', fam:'robinet', spec:'Motorisée · 1"', conf:'te', q:'vanne 3 voies motorisée chauffage',
+ info:"Vanne à trois raccords qui oriente l'eau vers un circuit ou un autre, par exemple chauffage ou ballon d'eau chaude. Souvent pilotée par un moteur.",
+ svg:P('M20 76 H180 V104 H114 V134 H86 V104 H20 Z','br')+C(100,90,22,'br')+R(76,22,48,46,'pa',6)+C(100,45,8,'pv')},
+{id:'vidange', fr:'Robinet de vidange', nl:'Aftapkraan', fam:'robinet', spec:'Laiton · 1/2" · embout', conf:'jardin', q:'robinet de vidange chauffage laiton',
+ info:"Petit robinet au point bas d'une installation pour la vider. On y branche un tuyau sur l'embout cannelé.",
+ svg:R(20,64,40,22,'br')+THR(20,64,40,22)+R(60,58,60,34,'br',3)+R(120,66,40,18,'br')+RIBS(126,156,66,84,6)+R(84,38,12,22,'st')},
+{id:'gaz', fr:'Robinet de gaz', nl:'Gaskraan', fam:'robinet', spec:'Laiton · levier jaune', conf:'vanne', q:'robinet gaz levier jaune',
+ info:"Vanne quart de tour pour le gaz, reconnaissable à son levier jaune. Le travail sur le gaz demande une qualification spécifique.",
+ svg:R(20,62,160,32,'br',3)+L(44,62,44,94)+L(156,62,156,94)+C(100,78,28,'br')+R(95,38,10,16,'st')+R(92,24,92,16,'yl',8)+C(100,32,4,'st')},
+
+/* ===== Sanitaire ===== */
+{id:'mitigeur', fr:'Mitigeur de lavabo', nl:'Wastafelmengkraan', fam:'sanit', spec:'Chromé · monocommande', conf:'thermodouche', q:'mitigeur lavabo chromé',
+ info:"Robinet à une seule manette : en la levant on règle le débit, en la tournant la température. Il se raccorde par deux flexibles sous le lavabo.",
+ svg:R(60,124,80,10,'st',3)+R(78,50,44,76,'st',8)+P('M120 60 H160 Q172 60 172 72 V82 H158 V74 H120 Z','st')+P('M86 50 L68 26 L80 20 L104 50 Z','st')},
+{id:'thermodouche', fr:'Mitigeur thermostatique', nl:'Thermostatische douchekraan', fam:'sanit', spec:'Douche · butée 38 °C', conf:'mitigeur', q:'mitigeur thermostatique douche',
+ info:"Garde la température choisie même si la pression change. Un bouton de sécurité bloque à 38 °C pour éviter les brûlures.",
+ svg:R(54,36,12,24,'st')+R(134,36,12,24,'st')+R(40,60,120,28,'st',14)+R(14,54,30,40,'st',8)+RIBS(18,40,56,92,5)+R(156,54,30,40,'st',8)+R(18,62,8,8,'sg')+R(94,88,12,20,'st')},
+{id:'flotteur', fr:'Robinet flotteur', nl:'Vlotterkraan', fam:'sanit', spec:'Alimentation de réservoir WC', conf:'chasse', q:'robinet flotteur WC',
+ info:"Remplit le réservoir du WC et coupe l'eau quand le flotteur monte. Un WC qui coule en continu vient souvent de là ou du mécanisme de chasse.",
+ svg:R(20,50,40,30,'br',3)+R(30,80,20,40,'br')+THR(30,90,20,30)+R(60,62,90,6,'st')+C(160,66,26,'pa')},
+{id:'chasse', fr:'Mécanisme de chasse', nl:'Spoelmechanisme', fam:'sanit', spec:'Double poussoir 3/6 L', conf:'flotteur', q:'mécanisme de chasse d’eau WC double',
+ info:"Libère l'eau du réservoir quand on appuie. Si le joint du bas est usé, l'eau coule en permanence dans la cuvette.",
+ svg:R(84,14,32,100,'pa',4)+L(90,30,90,108)+L(110,30,110,108)+R(120,30,10,80,'pa')+R(80,6,40,12,'pv',4)+E(100,118,40,10,'pa')+E(100,126,34,6,'rb')},
+{id:'boiler', fr:'Chauffe-eau électrique', nl:'Elektrische boiler', fam:'sanit', spec:'150 L · vertical', conf:'chaudiere', q:'chauffe-eau électrique boiler vertical',
+ info:"Ballon qui chauffe l'eau avec une résistance. Il est toujours équipé d'un groupe de sécurité sur l'arrivée d'eau froide.",
+ svg:R(60,6,80,120,'pa',30)+C(100,96,8,'pv')+R(80,124,10,14,'bl')+R(110,124,10,14,'sg')},
+{id:'groupesecu', fr:'Groupe de sécurité', nl:'Veiligheidsgroep', fam:'sanit', spec:'Pour chauffe-eau · 7 bar', conf:'soupape', q:'groupe de sécurité chauffe eau',
+ info:"Se monte sur l'eau froide du chauffe-eau. Il évacue la surpression quand l'eau chauffe et se dilate : qu'il goutte un peu pendant la chauffe est normal.",
+ svg:R(90,8,20,24,'br')+R(80,30,40,60,'br',4)+R(90,90,20,30,'br')+R(120,44,40,10,'sg',5)+C(70,60,10,'bl')+G('130,96 170,96 158,116 142,116','pv')+R(144,116,12,20,'pv')},
+
+/* ===== Chauffage ===== */
+{id:'vase', fr:'Vase d’expansion', nl:'Expansievat', fam:'chauffage', spec:'Chauffage · 18 L', conf:'boiler', q:'vase d’expansion chauffage rouge',
+ info:"Absorbe la dilatation de l'eau du chauffage quand elle chauffe. Rouge pour le chauffage, blanc pour l'eau sanitaire. Mal gonflé, la pression monte et descend sans arrêt.",
+ svg:R(50,28,100,96,'sg',40)+R(92,12,16,18,'br')+L(50,76,150,76,'thin')+R(96,124,8,10,'st')},
+{id:'soupape', fr:'Soupape de sécurité', nl:'Veiligheidsklep', fam:'chauffage', spec:'Chauffage · 3 bar', conf:'groupesecu', q:'soupape de sécurité chauffage 3 bar',
+ info:"S'ouvre automatiquement si la pression du chauffage dépasse 3 bar, pour protéger la chaudière. Si elle goutte, la pression est trop haute ou elle est encrassée.",
+ svg:R(80,60,40,40,'br')+R(88,100,24,30,'br')+THR(88,104,24,26)+R(120,66,40,26,'br')+R(76,30,48,32,'sg',6)+TX(100,51,10,'3 bar','txtl')},
+{id:'purgeurauto', fr:'Purgeur automatique', nl:'Automatische ontluchter', fam:'chauffage', spec:'Laiton · 3/8"', conf:'purge', q:'purgeur automatique chauffage',
+ info:"Évacue tout seul l'air du circuit de chauffage. On le place aux points hauts de l'installation.",
+ svg:R(84,40,32,58,'br',4)+R(80,28,40,14,'pv',4)+R(116,32,12,6,'st')+NUT(80,96,40,10)+R(90,106,20,24,'br')+THR(90,106,20,24)},
+{id:'tereglage', fr:'Té de réglage', nl:'Retourventiel', fam:'chauffage', spec:'Équerre · 1/2"', conf:'thermo', q:'té de réglage radiateur',
+ info:"Robinet sur le retour du radiateur, caché sous un capuchon. On l'utilise pour équilibrer l'installation ou isoler le radiateur pour le démonter.",
+ svg:NUT(80,36,40,22,'st')+R(84,58,32,32,'st')+R(116,64,64,18,'st')+R(132,58,14,30,'st')+R(90,90,20,46,'cu')},
+{id:'radiateur', fr:'Radiateur à panneaux', nl:'Paneelradiator', fam:'chauffage', spec:'Type 22 · 600 × 1000', conf:'seche', q:'radiateur panneau acier type 22',
+ info:"Le radiateur le plus courant. Le type (11, 21, 22, 33) indique le nombre de panneaux et d'ailettes, donc la puissance.",
+ svg:R(10,30,180,84,'pa',3)+RIBS(18,182,40,108,8)+R(10,30,180,10,'pa',3)+R(20,114,10,14,'st')+R(170,114,10,14,'st')},
+{id:'seche', fr:'Sèche-serviettes', nl:'Handdoekradiator', fam:'chauffage', spec:'Échelle · 1200 × 500', conf:'radiateur', q:'radiateur sèche serviettes salle de bain',
+ info:"Radiateur en échelle pour la salle de bain. Il se raccorde comme un radiateur, avec un robinet et un té de réglage en bas.",
+ svg:R(40,8,10,124,'pa',4)+R(150,8,10,124,'pa',4)+R(50,16,100,6,'pa')+R(50,28,100,6,'pa')+R(50,40,100,6,'pa')+R(50,62,100,6,'pa')+R(50,74,100,6,'pa')+R(50,86,100,6,'pa')+R(50,108,100,6,'pa')+R(50,120,100,6,'pa')},
+{id:'chaudiere', fr:'Chaudière murale', nl:'Wandketel', fam:'chauffage', spec:'Gaz à condensation · 24 kW', conf:'boiler', q:'chaudière murale gaz condensation',
+ info:"Produit le chauffage et souvent l'eau chaude. Son entretien régulier par un technicien agréé est obligatoire en Région bruxelloise.",
+ svg:R(88,4,24,18,'st')+R(50,20,100,100,'pa',6)+R(80,92,40,14,'ink',2)+R(60,120,8,18,'cu')+R(82,120,8,18,'cu')+R(110,120,8,18,'cu')+R(132,120,8,18,'cu')},
+{id:'circulateur', fr:'Circulateur', nl:'Circulatiepomp', fam:'chauffage', spec:'Classe A · 230 V', conf:'pompe', q:'circulateur chauffage pompe',
+ info:"Pompe qui fait tourner l'eau dans le circuit de chauffage. Bruyante ou bloquée, elle donne des radiateurs froids alors que la chaudière tourne.",
+ svg:R(40,90,120,30,'pv')+NUT(14,90,28,30)+NUT(158,90,28,30)+R(70,40,60,52,'st',6)+RIBS(78,122,46,88,8)+R(66,20,68,26,'sg',4)},
+{id:'collecteur', fr:'Collecteur', nl:'Collector', fam:'chauffage', spec:'Plancher chauffant · 5 départs', conf:'te', q:'collecteur plancher chauffant',
+ info:"Barre de distribution avec plusieurs départs, un par boucle de plancher chauffant ou par pièce. Chaque départ a son robinet de réglage.",
+ svg:R(20,40,160,16,'br')+R(20,90,160,16,'br')+R(36,28,16,12,'bl',2)+R(66,28,16,12,'bl',2)+R(96,28,16,12,'bl',2)+R(126,28,16,12,'bl',2)+R(156,28,16,12,'bl',2)+R(38,106,12,30,'pa')+R(68,106,12,30,'pa')+R(98,106,12,30,'pa')+R(128,106,12,30,'pa')+R(158,106,12,30,'pa')},
+{id:'thermostat', fr:'Thermostat d’ambiance', nl:'Kamerthermostaat', fam:'chauffage', spec:'Programmable · sans fil', conf:'thermo', q:'thermostat d’ambiance programmable',
+ info:"Mesure la température de la pièce et commande la chaudière. On le place dans la pièce de vie, loin d'une source de chaleur.",
+ svg:R(50,28,100,84,'pa',12)+R(66,42,68,32,'ink',3)+TX(100,64,14,'20.5°','txtl')+C(80,94,6,'pv')+C(100,94,6,'pv')+C(120,94,6,'pv')},
+{id:'ventchaud', fr:'Ventouse de chaudière', nl:'Concentrische geveldoorvoer', fam:'chauffage', spec:'Concentrique · 60/100', conf:'ventouse', q:'ventouse chaudière concentrique façade',
+ info:"Conduit qui traverse le mur : il évacue les fumées par le tube intérieur et aspire l'air frais par le tube extérieur. Rien à voir avec la ventouse de débouchage !",
+ svg:R(84,8,28,130,'soil')+R(20,50,160,40,'st')+R(20,60,170,20,'pa')+R(180,44,14,52,'st',4)+RIBSH(50,90,182,192,6)},
+
+/* ===== Outils ===== */
+{id:'multiprise', fr:'Pince multiprise', nl:'Waterpomptang', fam:'outil', spec:'250 mm · 7 positions', conf:'stillson', q:'pince multiprise plombier',
+ info:"L'outil de base du plombier : sa mâchoire se règle sur plusieurs ouvertures pour serrer écrous et tubes.",
+ svg:G('30,130 44,136 104,64 92,58','sg')+G('70,136 84,130 112,60 100,56','sg')+P('M92 58 Q90 30 120 18 L126 26 Q104 38 108 60 Z','st')+P('M104 64 Q140 50 150 30 L158 36 Q150 64 112 70 Z','st')+C(104,61,5,'st')},
+{id:'molette', fr:'Clé à molette', nl:'Engelse sleutel', fam:'outil', spec:'250 mm · ouverture 30', conf:'multiprise', q:'clé à molette',
+ info:"Clé dont l'ouverture se règle avec une molette. Elle serre les écrous à plat sans les abîmer, contrairement à la pince.",
+ svg:R(10,72,120,20,'st',10)+P('M120 56 H156 V96 H120 Z','st')+G('146,26 188,26 188,40 158,40 158,56 146,56','st')+R(158,58,30,12,'st')+C(140,82,7,'st')+RIBS(136,144,76,88,3)},
+{id:'stillson', fr:'Clé serre-tube', nl:'Pijptang', fam:'outil', spec:'Stillson · 14"', conf:'multiprise', q:'clé serre tube stillson',
+ info:"Grosse clé à dents qui mord dans le tube pour visser ou dévisser des raccords grippés. Elle marque les pièces : pas sur du chromé.",
+ svg:R(10,76,128,20,'sg',6)+R(130,64,30,44,'sg')+P('M138 64 V22 H182 V38 H158 V64 Z','st')+R(156,48,30,10,'st')+R(140,44,14,16,'st')+RIBS(142,152,46,58,3)},
+{id:'cintreuse', fr:'Cintreuse', nl:'Buigtang', fam:'outil', spec:'Cuivre Ø 12 à 22', conf:'coupetube', q:'cintreuse tube cuivre manuelle',
+ info:"Plie le tube cuivre sans l'écraser, autour d'une forme ronde. Un beau cintrage évite un coude et deux soudures.",
+ svg:C(80,80,40,'st')+R(80,74,110,12,'sg',6)+G('72,84 84,92 30,140 18,132','sg')+ST('M20 46 H80 A34 34 0 0 1 114 80 V136','copper',8)+C(80,80,6,'st')},
+{id:'pincesertir', fr:'Sertisseuse', nl:'Persmachine', fam:'outil', spec:'Sur batterie · mâchoires V', conf:'sertir', q:'sertisseuse plomberie batterie',
+ info:"Machine qui écrase les raccords à sertir avec ses mâchoires. Le profil de la mâchoire (V, TH, M) doit correspondre au raccord.",
+ svg:C(50,60,30,'st')+C(50,60,12,'pa')+R(76,46,90,28,'sg',8)+R(130,74,26,40,'ink',6)+R(120,112,60,22,'pv',4)},
+{id:'chalumeau', fr:'Chalumeau', nl:'Soldeerbrander', fam:'outil', spec:'Cartouche gaz · piezo', conf:'brasure', q:'chalumeau plombier cartouche gaz',
+ info:"Sert à chauffer le cuivre pour souder ou braser les raccords. On protège ce qui est derrière avec un écran thermique.",
+ svg:R(30,62,50,72,'bl',8)+R(48,44,14,20,'br')+C(70,52,6,'pv')+ST('M56 46 L150 20','steel',8)+P('M154 20 Q176 6 192 18 Q176 30 154 22 Z','sg')},
+{id:'ebavureur', fr:'Ébavureur', nl:'Ontbramer', fam:'outil', spec:'Lame pivotante', conf:'coupetube', q:'ébavureur tube cuivre',
+ info:"Retire la bavure à l'intérieur et à l'extérieur du tube après la coupe. Sans ça, le joint ou la soudure tiennent mal.",
+ svg:R(20,62,110,22,'sg',11)+R(130,66,16,14,'st')+ST('M146 73 H170 Q184 73 184 60 Q184 50 176 50','steel',5)},
+{id:'clelavabo', fr:'Clé à lavabo', nl:'Kraansleutel', fam:'outil', spec:'Mâchoire pivotante', conf:'molette', q:'clé à lavabo robinet',
+ info:"Longue clé à mâchoire pivotante pour serrer les écrous des robinets derrière le lavabo, là où une pince ne passe pas.",
+ svg:R(96,30,8,96,'st')+R(70,122,60,10,'st',4)+ST('M100 30 Q100 10 120 10 Q140 10 140 26','steel',7)},
+{id:'camera', fr:'Caméra d’inspection', nl:'Inspectiecamera', fam:'outil', spec:'Câble 30 m · Ø 23 mm', conf:'furet', q:'caméra inspection canalisation',
+ info:"Caméra au bout d'un câble poussé dans l'égout. Elle montre où se trouve le bouchon, une cassure ou des racines, et sert de preuve pour le client.",
+ svg:C(70,84,46,'pv')+C(70,84,20,'pa')+R(120,16,72,52,'ink',6)+R(126,22,60,40,'water')+ST('M116 92 C140 110 160 120 186 118','ink',4)+R(184,112,12,12,'st',3)},
+{id:'hydrocureuse', fr:'Hydrocureuse', nl:'Hogedrukontstopper', fam:'outil', spec:'150 bar · flexible 30 m', conf:'furet', q:'hydrocureuse débouchage canalisation',
+ info:"Envoie de l'eau à très haute pression dans la canalisation pour casser les bouchons, la graisse et les racines. C'est l'outil pro du débouchage d'égout.",
+ svg:R(30,58,110,52,'sg',6)+C(160,72,26,'pv')+C(160,72,10,'pa')+C(50,118,14,'ink')+C(120,118,14,'ink')+ST('M30 60 L14 30','steel',6)+ST('M186 72 Q196 100 180 128','ink',4)},
+{id:'pompedeb', fr:'Pompe à déboucher', nl:'Ontstoppingspomp', fam:'outil', spec:'Piston · embouts', conf:'ventouse', q:'pompe à déboucher piston',
+ info:"Plus puissante qu'une ventouse : le piston crée une forte aspiration et une forte poussée. Efficace sur les éviers et les WC.",
+ svg:R(96,20,8,14,'st')+R(70,10,60,12,'pv',5)+R(80,32,40,80,'pv',6)+G('84,112 116,112 126,134 74,134','rb')},
+{id:'scie', fr:'Scie à métaux', nl:'IJzerzaag', fam:'outil', spec:'Lame 300 mm · 24 dents', conf:'coupetube', q:'scie à métaux',
+ info:"Coupe le métal et le PVC. Pour le cuivre, le coupe-tube donne une coupe plus droite et plus propre.",
+ svg:ST('M34 40 H170 V92','steel',8)+L(30,92,170,92)+P('M30 36 V96 Q30 116 16 126 L8 116 Q18 108 18 96 V36 Z','sg')},
+{id:'cisaille', fr:'Coupe-tube PVC', nl:'Buizenschaar', fam:'outil', spec:'Cisaille à cliquet · Ø 42', conf:'coupetube', q:'cisaille coupe tube PVC PER',
+ info:"Cisaille pour couper net les tubes PER, multicouche ou PVC de petit diamètre, sans copeaux.",
+ svg:P('M100 60 Q140 20 180 40 L160 60 Z','st')+P('M100 60 L170 70 Q180 76 170 84 L104 76 Z','st')+G('100,62 112,70 46,136 34,128','sg')+G('96,66 104,74 74,140 62,136','sg')+C(104,66,6,'st')},
+
+/* ===== Étanchéité & fixation ===== */
+{id:'teflon', fr:'Ruban téflon', nl:'Teflontape', fam:'etanch', spec:'12 mm × 12 m', conf:'filasse', q:'ruban téflon plomberie',
+ info:"Ruban blanc qu'on enroule sur les filetages pour les rendre étanches. On l'enroule dans le sens du vissage, sinon il se défait.",
+ svg:C(90,70,48,'pa')+RING(90,70,40,'line',1)+C(90,70,22,'yl')+C(90,70,14,'pa')+P('M136 62 H190 V76 H136 Z','pa')},
+{id:'filasse', fr:'Filasse', nl:'Vlas (hennep)', fam:'etanch', spec:'Chanvre + pâte d’étanchéité', conf:'teflon', q:'filasse chanvre plomberie pâte',
+ info:"Fibres de chanvre enroulées sur le filetage avec une pâte d'étanchéité. Plus solide que le téflon sur les gros filetages et le chauffage.",
+ svg:ST('M20 50 C50 30 80 70 110 46','wood',3)+ST('M20 60 C50 40 80 80 110 56','wood',3)+ST('M20 70 C50 50 80 90 110 66','wood',3)+ST('M20 80 C50 60 80 100 110 76','wood',3)+ST('M20 90 C50 70 80 110 110 86','wood',3)+R(130,60,50,70,'pa',6)+R(126,50,58,14,'bl',4)},
+{id:'jointfibre', fr:'Joint fibre', nl:'Vezelpakking', fam:'etanch', spec:'Plat · 3/4"', conf:'oring', q:'joint fibre plat plomberie',
+ info:"Joint plat qu'on place au fond d'un écrou, par exemple sur un flexible ou un compteur. Il s'écrase au serrage : on le remplace à chaque démontage.",
+ svg:C(80,70,46,'wd')+C(80,70,24,'pa')+C(150,80,30,'wd')+C(150,80,15,'pa')},
+{id:'oring', fr:'Joint torique', nl:'O-ring', fam:'etanch', spec:'Caoutchouc EPDM', conf:'jointfibre', q:'joint torique caoutchouc plomberie',
+ info:"Anneau en caoutchouc de section ronde. On le trouve dans les robinets, les raccords à sertir et les cartouches. Un joint fendu ou écrasé fait fuir.",
+ svg:RING(84,70,40,'ink',12)+RING(158,86,18,'ink',8)},
+{id:'atlas', fr:'Collier de fixation', nl:'Buisbeugel', fam:'etanch', spec:'Acier + caoutchouc · M8', conf:'cliptube', q:'collier de fixation tube caoutchouc',
+ info:"Collier métallique à vis, doublé de caoutchouc, qui tient le tube au mur. Le caoutchouc évite les bruits de dilatation.",
+ svg:RING(100,60,36,'steel',8)+RING(100,60,30,'rubber',4)+C(100,60,24,'cu')+R(64,92,72,10,'st',2)+R(96,102,8,34,'st')+THR(96,108,8,28)},
+{id:'brasure', fr:'Fil à braser', nl:'Soldeertin', fam:'etanch', spec:'Étain-cuivre · Ø 2,5 mm', conf:'chalumeau', q:'fil à braser étain plomberie décapant',
+ info:"Métal d'apport qui fond dans le raccord chauffé pour le rendre étanche. On applique d'abord du décapant sur le tube propre.",
+ svg:C(70,74,42,'st')+C(70,74,16,'pa')+RING(70,74,32,'line',2)+RING(70,74,24,'line',2)+ST('M112 74 C130 74 130 110 150 120','steel',3)+R(140,70,48,56,'pa',6)+R(136,60,56,14,'sg',4)}
+];
+
+PARTS.push(...MORE);
+PARTS.find(p=>p.id==='thermo').fam='chauffage';
+const byId = Object.fromEntries(PARTS.map(p=>[p.id,p]));
+const ROUND = 10;
+const QUERY = {coude:'coude cuivre 90° à souder', te:'té égal cuivre à souder', manchon:'manchon cuivre à souder', reduction:'réduction cuivre à souder 22 15', compression:'raccord à compression laiton olive', sertir:'raccord à sertir cuivre Viega Profipress', flexible:'flexible inox tressé sanitaire', vanne:'vanne quart de tour laiton 1/2', clapet:'clapet anti-retour laiton', reducteur:'réducteur de pression eau manomètre', thermo:'robinet thermostatique radiateur équerre', sterput:'sterput avaloir de sol grille', regard:'chambre de visite égout', siphon:'siphon bouteille lavabo', furet:'furet déboucheur canalisation', ventouse:'ventouse débouchage WC', coupetube:'coupe tube cuivre', purge:'clé de purge radiateur'};
+function gImg(p){return 'https://www.google.com/search?tbm=isch&q='+encodeURIComponent(p.q||QUERY[p.id]||p.fr)}
+function gLink(p){return `<a class="gimg" href="${gImg(p)}" target="_blank" rel="noopener">Voir des photos réelles ↗</a>`}
+const OK_WORDS = ['Exact','Bien vu','C’est ça','Correct'];
+
+function svg(p, cls='', label='Pièce à identifier'){
+  return `<svg viewBox="0 0 200 140" class="part ${cls}" role="img" aria-label="${label}">${p.svg}</svg>`;
+}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function pad(n){return String(n).padStart(2,'0')}
+function store(k,v){try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v);}catch(e){return null}}
+
+let S;
+let DB = null, ASSETS = null, capState = 'loading', dbBroken = false;
+let PHOTOS = {};            // id de pièce -> [{doc, asset, at}]
+const busy = {}, errs = {};
+let confirmDel = null, pendingPart = null, capsStarted = false;
+let pasteTarget = null, huntFilter = 'missing', huntFam = 'all';
+const IMP = {running:false, finished:false, total:0, done:0, added:0, skipped:0, failed:0, unknown:[], stopMsg:''};
+let renderTimer = null;
+function renderSoon(){ if(renderTimer) return; renderTimer = setTimeout(()=>{ renderTimer=null; render(); }, IMP.running ? 1500 : 60); }
+
+function freshState(prev){
+  const settings = Object.assign({lang:'fr', level:'apprenti', img:'mix', fam:'all', len:10}, prev?.settings || {});
+  return {view: prev?.view || 'quiz', settings, filter: prev?.filter || 'all', deck: makeDeck(settings), idx:0, score:0, streak:0, answers:[], done:false};
+}
+function makeDeck(st){
+  const level = st.level;
+  const src = PARTS.filter(p=>st.fam==='all' || p.fam===st.fam);
+  return shuffle(src).slice(0, Number(st.len)||ROUND).map(p=>{
+    let pool = PARTS.filter(x=>x.id!==p.id);
+    let picks;
+    if(level==='pro' || st.fam!=='all'){
+      const same = shuffle(pool.filter(x=>x.fam===p.fam));
+      const conf = p.conf && byId[p.conf] ? [byId[p.conf]] : [];
+      picks = [...new Set([...conf, ...same, ...shuffle(pool)])].slice(0,3);
+    } else picks = shuffle(pool).slice(0,3);
+    return {id:p.id, opts: shuffle([p.id, ...picks.map(x=>x.id)]), r:Math.random(), r2:Math.random()};
+  });
+}
+function name(p){return S.settings.lang==='nl' ? p.nl : p.fr}
+function photosOf(id){return PHOTOS[id] || []}
+function photoCount(){return Object.values(PHOTOS).reduce((n,a)=>n+a.length,0)}
+function src(ph){return '/_blob/' + ph.asset}
+function questionPhoto(q){
+  const ph = photosOf(q.id), mode = S.settings.img;
+  if(!ph.length || mode==='dessin') return null;
+  if(mode==='mix' && (q.r2 ?? 0) >= 0.6) return null;
+  return ph[Math.floor((q.r ?? 0)*ph.length) % ph.length];
+}
+
+const app = document.getElementById('app');
+
+function render(){
+  document.getElementById('tab-quiz').setAttribute('aria-pressed', S.view==='quiz');
+  document.getElementById('tab-cat').setAttribute('aria-pressed', S.view==='cat');
+  document.getElementById('tab-photos').setAttribute('aria-pressed', S.view==='photos');
+  app.innerHTML = S.view==='quiz' ? (S.done ? endHTML() : quizHTML()) : S.view==='photos' ? photosHTML() : catHTML();
+}
+
+function settingsHTML(){
+  const b=(group,val,label)=>`<button type="button" data-set="${group}" data-val="${val}" aria-pressed="${String(S.settings[group])===val}">${label}</button>`;
+  const n = photoCount();
+  return `<div class="settings">
+    <label>Réponses <span class="seg" role="group" aria-label="Langue des réponses">${b('lang','fr','Français')}${b('lang','nl','Nederlands')}</span></label>
+    <label>Niveau <span class="seg" role="group" aria-label="Niveau">${b('level','apprenti','Apprenti')}${b('level','pro','Pro')}</span></label>
+    <label>Partie <span class="seg" role="group" aria-label="Pièces par partie">${b('len','10','10 pièces')}${b('len','20','20 pièces')}</span></label>
+    <label for="fam-select">Famille <select class="sel" id="fam-select">${[['all','Toutes ('+PARTS.length+')'],...Object.entries(FAMS).map(([k,v])=>[k,v+' ('+PARTS.filter(p=>p.fam===k).length+')'])].map(([k,v])=>`<option value="${k}" ${S.settings.fam===k?'selected':''}>${v}</option>`).join('')}</select></label>
+    ${(n || ASSETS) ? `<label>Images <span class="seg" role="group" aria-label="Images">${b('img','mix','Mélange')}${b('img','photo','Photos')}${b('img','dessin','Dessins')}</span></label>
+    <span class="mono hint">${n ? `${n} photo${n>1?'s':''} · ${Object.keys(PHOTOS).length} pièce${Object.keys(PHOTOS).length>1?'s':''}` : 'Aucune photo : ajoute-les dans le Catalogue'}</span>` : ''}
+  </div>`;
+}
+
+function quizHTML(){
+  const q = S.deck[S.idx], p = byId[q.id], a = S.answers[S.idx];
+  const ph = questionPhoto(q);
+  const ticks = S.deck.map((_,i)=>{const r=S.answers[i]; return `<i class="${r? (r.ok?'ok':'bad') : (i===S.idx?'now':'')}"></i>`}).join('');
+  const opts = q.opts.map((id,i)=>{
+    let cls='';
+    if(a){ if(id===q.id) cls='correct'; else if(id===a.pick) cls='wrong'; else cls='dim'; }
+    return `<button type="button" class="opt ${cls}" data-pick="${id}" ${a?'disabled':''}><span class="key">${i+1}</span><span>${name(byId[id])}</span></button>`;
+  }).join('');
+  let fb='';
+  if(a){
+    const c = p.conf ? byId[p.conf] : null;
+    const last = S.idx===S.deck.length-1;
+    const others = photosOf(p.id).filter(x=>x!==ph).slice(0,3);
+    const compare = (ph || others.length) ? `<div class="compare">${ph ? svg(p,'',p.fr+' en dessin') : ''}${others.map(x=>`<img src="${src(x)}" alt="Photo : ${p.fr}" loading="lazy">`).join('')}</div>` : '';
+    fb = `<div class="fb ${a.ok?'is-ok':'is-bad'}">
+      <p class="verdict">${a.ok ? OK_WORDS[S.idx%OK_WORDS.length] : 'Raté, c’était'}</p>
+      <h3>${p.fr} <span class="nl">· ${p.nl}</span></h3>
+      <div class="meta"><span class="chip">${FAMS[p.fam]}</span><span class="mono">${p.spec}</span></div>
+      <p>${p.info}</p>
+      ${compare}
+      ${c?`<div class="conf">${svg(c,'',c.fr)}<span>À ne pas confondre avec : <strong>${c.fr}</strong></span></div>`:''}
+      <div class="actions"><button type="button" class="btn" id="next" data-act="next">${last?'Voir le résultat':'Pièce suivante'}</button><span class="mono hint">Entrée</span>${gLink(p)}</div>
+    </div>`;
+  }
+  const ref = `<span class="ref mono">RÉF. ${pad(PARTS.indexOf(p)+1)}</span>`;
+  const plate = ph
+    ? `<div class="plate photo"><img src="${src(ph)}" alt="Photo de la pièce à identifier"><span class="tag mono">Photo</span>${ref}</div>`
+    : `<div class="plate">${svg(p,'anim')}${ref}</div>`;
+  return `${settingsHTML()}
+  <section class="card" aria-live="polite" style="margin-top:14px">
+    <div class="card-top"><span class="mono">Pièce ${pad(S.idx+1)} / ${S.deck.length}</span><div class="ticks" aria-hidden="true">${ticks}</div><span class="mono">Score ${S.score} · Série ${S.streak}</span></div>
+    ${plate}
+    <div class="body">
+      <h2 class="q">Quelle est cette pièce ?</h2>
+      <div class="opts">${opts}</div>
+      ${fb}
+    </div>
+  </section>`;
+}
+
+function endHTML(){
+  const N = S.deck.length, BK = 'rlp-best-'+N;
+  const best = Number(store(BK)||0);
+  const missed = S.answers.map((a,i)=>({a,q:S.deck[i]})).filter(x=>!x.a.ok);
+  let msg;
+  if(S.score===N) msg = S.settings.level==='pro' ? 'Sans faute au niveau Pro. Tu connais ton catalogue.' : 'Sans faute. Passe au niveau Pro : les mauvaises réponses y ressemblent beaucoup plus.';
+  else if(S.score>=8) msg = 'Très bien. Revois les pièces ratées ci-dessous.';
+  else if(S.score>=5) msg = 'Pas mal. Un tour dans le catalogue et ça va rentrer.';
+  else msg = 'C’est un début. Le catalogue est là pour apprendre les pièces une par une.';
+  if(S.score<N && S.score>=Math.ceil(N*.8)) msg = 'Très bien. Revois les pièces ratées ci-dessous.';
+  else if(S.score<Math.ceil(N*.8) && S.score>=Math.ceil(N*.5)) msg = 'Pas mal. Un tour dans le catalogue et ça va rentrer.';
+  else if(S.score<Math.ceil(N*.5)) msg = 'C’est un début. Le catalogue est là pour apprendre les pièces une par une.';
+  const list = missed.length ? `<div><p class="eyebrow" style="margin:0 0 8px">À revoir</p><ul class="missed">${missed.map(({a,q})=>{const p=byId[q.id];return `<li>${svg(p,'',p.fr)}<div><strong>${p.fr} · <span class="nl">${p.nl}</span></strong><span>Ta réponse : ${byId[a.pick].fr}</span></div></li>`}).join('')}</ul></div>` : '';
+  return `<section class="card"><div class="end">
+    <p class="eyebrow" style="margin:0">Résultat · niveau ${S.settings.level==='pro'?'Pro':'Apprenti'}</p>
+    <p class="big">${S.score}<small> / ${N}</small></p>
+    <p style="margin:0;max-width:56ch">${msg}</p>
+    <p class="mono hint" style="margin:0">Meilleur score sur ${N} pièces : ${best} / ${N}${S.settings.fam!=='all'?' · '+FAMS[S.settings.fam]:''}</p>
+    ${list}
+    <div class="actions"><button type="button" class="btn" data-act="restart">Rejouer</button><button type="button" class="btn ghost" data-view="cat">Revoir les pièces</button></div>
+  </div></section>`;
+}
+
+function noteHTML(){
+  if(capState==='loading') return '';
+  if(ASSETS && DB && !dbBroken) return `<div class="note" id="import-box">${importBoxHTML()}</div>`;
+  if(DB && !dbBroken && photoCount()) return `<p class="note">Les photos sont ajoutées par la personne qui a créé ce jeu.</p>`;
+  return '';
+}
+
+function importBoxHTML(){
+  const I = IMP;
+  let status = '';
+  if(I.running) status = `<p style="margin:8px 0 0"><strong>Import en cours : ${I.done} / ${I.total}</strong>${I.failed?` · ${I.failed} échec(s)`:''}</p><div class="progress"><i style="width:${I.total?Math.round(I.done/I.total*100):0}%"></i></div>`;
+  else if(I.finished) status = `<p style="margin:8px 0 0"><strong>Import terminé : ${I.added} photo${I.added>1?'s':''} ajoutée${I.added>1?'s':''}.</strong>${I.skipped?` ${I.skipped} déjà présente(s), ignorée(s).`:''}${I.failed?` ${I.failed} échec(s).`:''}${I.unknown.length?` Nom non reconnu (${I.unknown.length}) : ${I.unknown.slice(0,6).map(n=>n.replace(/[<>&"]/g,'')).join(', ')}${I.unknown.length>6?'…':''}`:''}${I.stopMsg?` <span class="err">${I.stopMsg}</span>`:''}</p>`;
+  return `<strong>Ajoute de vraies photos.</strong> Une par une avec « Ajouter une photo » sous chaque fiche, ou toutes d’un coup : le jeu range chaque photo sous la bonne pièce grâce au début de son nom de fichier (ex. « vanne - Vanne quart de tour - 1.jpg »).
+    <div class="imp"><button type="button" class="btn" data-bulk="files" ${I.running?'disabled':''}>Importer des photos</button><button type="button" class="btn ghost" data-bulk="folder" ${I.running?'disabled':''}>Importer un dossier</button><span class="mono hint">${photoCount()} photo${photoCount()>1?'s':''} dans le jeu</span></div>${status}`;
+}
+function refreshImportBox(){ const b=document.getElementById('import-box'); if(b) b.innerHTML = importBoxHTML(); }
+
+function tilePhotos(p){
+  const list = photosOf(p.id);
+  const canEdit = !!(ASSETS && DB && !dbBroken);
+  const thumbs = list.map(x=>`<div class="thumb"><img src="${src(x)}" alt="Photo : ${p.fr}" loading="lazy">${canEdit ? (confirmDel===x.doc
+      ? `<button type="button" class="confirm" data-del="${x.doc}" aria-label="Confirmer la suppression">Supprimer</button>`
+      : `<button type="button" data-del="${x.doc}" aria-label="Supprimer cette photo">×</button>`) : ''}</div>`).join('');
+  if(!list.length && !canEdit) return '';
+  return `<div class="ph">
+    ${list.length ? `<div class="thumbs">${thumbs}</div>` : ''}
+    ${canEdit ? `<button type="button" class="addph" data-add="${p.id}" ${busy[p.id]?'disabled':''}>${busy[p.id] ? 'Envoi…' : '+ Ajouter une photo'}</button>` : ''}
+    ${errs[p.id] ? `<p class="err">${errs[p.id]}</p>` : ''}
+  </div>`;
+}
+
+let catQuery = '';
+function norm(t){return String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')}
+function tileHTML(p){return `<article class="tile">
+    <div class="plate">${svg(p,'',p.fr)}</div>
+    ${tilePhotos(p)}
+    <div class="txt"><div class="meta"><span class="chip">${FAMS[p.fam]}</span><span class="mono hint">${p.spec}</span></div>
+    <h3>${p.fr}</h3><span class="nl">${p.nl}</span><p>${p.info}</p>${gLink(p)}</div></article>`}
+function gridHTML(){
+  const f = S.filter, q = norm(catQuery.trim());
+  const list = PARTS.filter(p=>(f==='all'||p.fam===f) && (!q || norm(p.fr+' '+p.nl).includes(q)));
+  if(!list.length) return `<p class="note">Aucune pièce ne correspond à « ${catQuery.replace(/[<>&"]/g,'')} ».</p>`;
+  return Object.keys(FAMS).map(k=>{
+    const items = list.filter(p=>p.fam===k);
+    if(!items.length) return '';
+    return `<h2 class="famhead">${FAMS[k]} <span>${items.length} pièce${items.length>1?'s':''}</span></h2><div class="grid">${items.map(tileHTML).join('')}</div>`;
+  }).join('');
+}
+function catHTML(){
+  const f = S.filter;
+  const chips = [['all','Toutes'],...Object.entries(FAMS)].map(([k,v])=>`<button type="button" class="chipbtn" data-filter="${k}" aria-pressed="${f===k}">${v}</button>`).join('');
+  return `<div style="display:flex;flex-direction:column;gap:14px">${noteHTML()}
+    <label class="vh" for="cat-search">Chercher une pièce</label>
+    <input class="search" id="cat-search" type="search" placeholder="Chercher une pièce (FR ou NL)… ex. kogelkraan, sterput" value="${catQuery.replace(/"/g,'&quot;')}" autocomplete="off">
+    <div class="filters">${chips}</div><div id="cat-grid" style="display:flex;flex-direction:column;gap:12px">${gridHTML()}</div></div>`;
+}
+
+function commonsLink(p){return 'https://commons.wikimedia.org/w/index.php?search='+encodeURIComponent((p.q||p.fr))+'&title=Special:MediaSearch&type=image'}
+function photosHTML(){
+  const canEdit = !!(ASSETS && DB && !dbBroken);
+  const withPh = PARTS.filter(p=>photosOf(p.id).length).length;
+  const pct = Math.round(withPh/PARTS.length*100);
+  const famChips = [['all','Toutes'],...Object.entries(FAMS)].map(([k,v])=>`<button type="button" class="chipbtn" data-huntfam="${k}" aria-pressed="${huntFam===k}">${v}</button>`).join('');
+  const filt = [['missing','Sans photo'],['all','Toutes']].map(([k,v])=>`<button type="button" data-hunt="${k}" aria-pressed="${huntFilter===k}">${v}</button>`).join('');
+  const list = PARTS.filter(p=>(huntFam==='all'||p.fam===huntFam) && (huntFilter==='all' || !photosOf(p.id).length))
+    .sort((a,b)=>Object.keys(FAMS).indexOf(a.fam)-Object.keys(FAMS).indexOf(b.fam));
+  const rows = list.map(p=>{
+    const ph = photosOf(p.id);
+    const thumb = ph.length ? `<img src="${src(ph[ph.length-1])}" alt="Photo : ${p.fr}" loading="lazy">` : svg(p,'',p.fr);
+    return `<div class="row ${ph.length?'done':''} ${pasteTarget===p.id?'target':''}" data-row="${p.id}">
+      <div class="mini">${thumb}</div>
+      <div class="info">
+        <div class="name"><strong>${p.fr}</strong><span class="nl">${p.nl}</span><span class="chip">${FAMS[p.fam]}</span></div>
+        <div class="acts">
+          <a class="go" href="${gImg(p)}" target="_blank" rel="noopener">1 · Chercher sur Google ↗</a>
+          <a href="${commonsLink(p)}" target="_blank" rel="noopener">Photos libres ↗</a>
+          ${canEdit ? `<button type="button" data-add="${p.id}" ${busy[p.id]?'disabled':''}>${busy[p.id]?'Envoi…':'2 · Ajouter la photo'}</button>
+          <button type="button" data-paste="${p.id}">${pasteTarget===p.id?'Prêt : colle avec ⌘V':'Coller une image'}</button>` : ''}
+          ${ph.length ? `<span class="ok">✓ ${ph.length} photo${ph.length>1?'s':''}</span>` : ''}
+        </div>
+        ${errs[p.id] ? `<p class="err">${errs[p.id]}</p>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  return `<div style="display:flex;flex-direction:column;gap:14px">
+    <div class="note hunt-head">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><strong>${withPh} / ${PARTS.length} pièces ont une vraie photo</strong><span class="mono hint">${photoCount()} photo${photoCount()>1?'s':''} au total</span></div>
+      <div class="hunt-bar"><i style="width:${pct}%"></i></div>
+      ${canEdit ? `<ol class="steps">
+        <li><strong>Chercher</strong> ouvre les images Google de la pièce dans un nouvel onglet.</li>
+        <li>Enregistre une photo nette : <strong>sur Mac</strong>, clic droit → « Enregistrer l’image sous… » ; <strong>sur téléphone</strong>, appui long → « Enregistrer l’image ».</li>
+        <li>Reviens ici et touche <strong>Ajouter la photo</strong> sur la même ligne. Sur Mac, plus rapide : clic droit → « Copier l’image », puis <strong>Coller une image</strong> et ⌘V. Tu peux aussi glisser un fichier sur la ligne.</li>
+      </ol>` : `<p style="margin:0">L’ajout de photos n’est pas disponible dans cette vue.</p>`}
+    </div>
+    <div class="filters"><span class="seg" role="group" aria-label="Pièces affichées">${filt}</span></div>
+    <div class="filters">${famChips}</div>
+    <div class="rows">${rows || `<p class="note">Toutes les pièces de cette famille ont déjà une photo. Bravo !</p>`}</div>
+  </div>`;
+}
+
+function answer(id){
+  if(S.done || S.answers[S.idx]) return;
+  const ok = id===S.deck[S.idx].id;
+  S.answers[S.idx] = {pick:id, ok};
+  if(ok){S.score++;S.streak++} else S.streak=0;
+  render();
+  document.getElementById('next')?.focus({preventScroll:true});
+}
+function next(){
+  if(!S.answers[S.idx]) return;
+  if(S.idx < S.deck.length-1){S.idx++; render(); app.querySelector('.opt')?.focus({preventScroll:true});}
+  else { S.done = true; const BK='rlp-best-'+S.deck.length; const best=Number(store(BK)||0); if(S.score>best) store(BK, String(S.score)); render(); }
+}
+
+/* ---------- photos ---------- */
+const UPLOAD_ERR = {
+  too_large:'Photo trop lourde (20 Mo maximum).',
+  unsupported_type:'Format non pris en charge : utilise une photo JPG ou PNG.',
+  quota_or_state:'Plus de place pour de nouvelles photos dans ce jeu.',
+  rate_limited:'Trop d’envois d’un coup. Réessaie dans un instant.',
+  quota_exceeded:'Plus de place pour de nouvelles photos dans ce jeu.'
+};
+async function shrink(file){
+  const url = URL.createObjectURL(file);
+  try{
+    const img = new Image();
+    await new Promise((res,rej)=>{img.onload=res; img.onerror=rej; img.src=url;});
+    const max = 1400, sc = Math.min(1, max/Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth*sc); c.height = Math.round(img.naturalHeight*sc);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    const blob = await new Promise(r=>c.toBlob(r,'image/jpeg',0.85));
+    return blob || file;
+  } catch(e){
+    return file;
+  } finally { URL.revokeObjectURL(url); }
+}
+async function addPhoto(part, file){
+  if(!ASSETS || !DB || !byId[part]) return;
+  busy[part] = true; errs[part] = ''; render();
+  let id = null;
+  try{
+    const blob = await shrink(file);
+    const r = await ASSETS.upload(blob, blob.type ? undefined : {type:'image/jpeg'});
+    id = r.id;
+    await DB.collection('photos').add({part, asset:id, name:String(file.name||'').slice(0,200), addedAt:new Date().toISOString()});
+  } catch(e){
+    errs[part] = UPLOAD_ERR[e?.code] || 'L’envoi a échoué. Réessaie.';
+    if(id){ try{ await ASSETS.delete(id); }catch(_){} }
+  }
+  busy[part] = false; render();
+}
+async function deletePhoto(docId){
+  let found=null, part=null;
+  for(const [k,arr] of Object.entries(PHOTOS)){ const x=arr.find(y=>y.doc===docId); if(x){found=x; part=k;} }
+  confirmDel = null;
+  if(!found || !DB) { render(); return; }
+  try{
+    await DB.doc('photos/'+docId).delete();
+    if(ASSETS){ try{ await ASSETS.delete(found.asset); }catch(_){} }
+  } catch(e){ errs[part] = 'La suppression a échoué. Réessaie.'; render(); }
+}
+
+function partFromName(name){
+  const base = String(name).split('/').pop().toLowerCase();
+  if(!/\.(jpe?g|png|webp)$/.test(base) || base.startsWith('.')) return null;
+  const m = base.match(/^([a-z0-9]+)/);
+  return m && byId[m[1]] ? m[1] : null;
+}
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+async function importFiles(fileList){
+  if(!ASSETS || !DB || IMP.running) return;
+  const files = Array.from(fileList||[]).filter(f=>/\.(jpe?g|png|webp)$/i.test(f.name) && !f.name.startsWith('.'));
+  Object.assign(IMP, {running:true, finished:false, total:0, done:0, added:0, skipped:0, failed:0, unknown:[], stopMsg:''});
+  const jobs = [];
+  for(const f of files){
+    const part = partFromName(f.name);
+    if(!part){ IMP.unknown.push(f.name); continue; }
+    if(photosOf(part).some(x=>x.name===f.name)){ IMP.skipped++; continue; }
+    jobs.push({f, part});
+  }
+  IMP.total = jobs.length; refreshImportBox();
+  for(const {f, part} of jobs){
+    let ok = false, tries = 0, id = null;
+    while(!ok && tries < 2){
+      tries++;
+      try{
+        const blob = await shrink(f);
+        const r = await ASSETS.upload(blob, blob.type ? undefined : {type:'image/jpeg'});
+        id = r.id;
+        await DB.collection('photos').add({part, asset:id, name:f.name.slice(0,200), addedAt:new Date().toISOString()});
+        ok = true;
+      } catch(e){
+        if(id){ try{ await ASSETS.delete(id); }catch(_){} id = null; }
+        const code = e?.code;
+        if(code==='rate_limited' || code==='store_unavailable' || code==='unavailable'){ if(tries<2){ await sleep(5000); continue; } IMP.stopMsg='Trop d’envois d’affilée : relance l’import dans une minute, les photos déjà importées seront ignorées.'; }
+        else if(code==='quota_or_state' || code==='quota_exceeded'){ IMP.stopMsg='Plus de place pour de nouvelles photos dans ce jeu. Garde 1 ou 2 photos par pièce.'; }
+        break;
+      }
+    }
+    IMP.done++;
+    if(ok) IMP.added++; else IMP.failed++;
+    refreshImportBox();
+    if(IMP.stopMsg) break;
+    await sleep(150);
+  }
+  IMP.running = false; IMP.finished = true;
+  render();
+}
+for(const id of ['bulk-input','folder-input']){
+  document.getElementById(id).addEventListener('change', e=>{
+    const files = e.target.files; importFiles(files).finally(()=>{ e.target.value=''; });
+  });
+}
+
+document.addEventListener('paste', e=>{
+  if(S.view!=='photos' || !pasteTarget) return;
+  const items = Array.from(e.clipboardData?.items || []);
+  const it = items.find(i=>i.kind==='file' && /^image\//.test(i.type));
+  const f = it ? it.getAsFile() : (e.clipboardData?.files?.[0] || null);
+  if(!f){ errs[pasteTarget] = 'Le presse-papiers ne contient pas d’image. Copie l’image (clic droit → Copier l’image) puis recolle.'; render(); return; }
+  e.preventDefault();
+  const part = pasteTarget; pasteTarget = null;
+  addPhoto(part, new File([f], (part+' - colle.'+(f.type.split('/')[1]||'png')), {type:f.type}));
+});
+document.addEventListener('dragover', e=>{ const r=e.target.closest && e.target.closest('[data-row]'); if(r && S.view==='photos'){ e.preventDefault(); r.classList.add('drag'); } });
+document.addEventListener('dragleave', e=>{ const r=e.target.closest && e.target.closest('[data-row]'); if(r) r.classList.remove('drag'); });
+document.addEventListener('drop', e=>{
+  const r = e.target.closest && e.target.closest('[data-row]');
+  if(!r || S.view!=='photos') return;
+  e.preventDefault(); r.classList.remove('drag');
+  const f = Array.from(e.dataTransfer?.files||[]).find(x=>/^image\//.test(x.type));
+  if(f) addPhoto(r.dataset.row, f);
+  else { errs[r.dataset.row] = 'Glisse un fichier image depuis le Finder. Depuis le navigateur, utilise plutôt Copier l’image puis Coller.'; render(); }
+});
+
+document.getElementById('photo-input').addEventListener('change', e=>{
+  const f = e.target.files && e.target.files[0];
+  const part = pendingPart; pendingPart = null; e.target.value = '';
+  if(f && part) addPhoto(part, f);
+});
+
+document.addEventListener('click', e=>{
+  const t = e.target.closest('button'); if(!t) return;
+  if(t.dataset.del){
+    if(confirmDel===t.dataset.del) deletePhoto(t.dataset.del);
+    else { confirmDel = t.dataset.del; render(); }
+    return;
+  }
+  if(confirmDel){ confirmDel = null; }
+  if(t.dataset.add){ pendingPart = t.dataset.add; document.getElementById('photo-input').click(); return; }
+  if(t.dataset.paste){ pasteTarget = pasteTarget===t.dataset.paste ? null : t.dataset.paste; render(); return; }
+  if(t.dataset.hunt){ huntFilter = t.dataset.hunt; render(); return; }
+  if(t.dataset.huntfam){ huntFam = t.dataset.huntfam; render(); return; }
+  if(t.dataset.bulk){ document.getElementById(t.dataset.bulk==='folder'?'folder-input':'bulk-input').click(); return; }
+  if(t.dataset.view){ S.view=t.dataset.view; render(); window.scrollTo({top:0}); return; }
+  if(t.dataset.pick){ answer(t.dataset.pick); return; }
+  if(t.dataset.act==='next'){ next(); return; }
+  if(t.dataset.act==='restart'){ S = freshState(S); S.view='quiz'; render(); return; }
+  if(t.dataset.filter){ S.filter=t.dataset.filter; render(); return; }
+  if(t.dataset.set){
+    const g=t.dataset.set, v=t.dataset.val; if(String(S.settings[g])===v) return;
+    S.settings[g]=v;
+    if(g==='level' || g==='len'){ S = freshState(S); }
+    render(); return;
+  }
+});
+document.addEventListener('input', e=>{
+  if(e.target.id==='cat-search'){ catQuery = e.target.value; const g=document.getElementById('cat-grid'); if(g) g.innerHTML = gridHTML(); }
+});
+document.addEventListener('change', e=>{
+  if(e.target.id==='fam-select'){ S.settings.fam = e.target.value; S = freshState(S); render(); document.getElementById('fam-select')?.focus(); }
+});
+document.addEventListener('keydown', e=>{
+  if(e.target.closest && e.target.closest('input,select,textarea')) return;
+  if(S.view!=='quiz' || S.done || e.altKey || e.ctrlKey || e.metaKey) return;
+  if(/^[1-4]$/.test(e.key) && !S.answers[S.idx]){ const id=S.deck[S.idx].opts[Number(e.key)-1]; if(id){e.preventDefault(); answer(id);} }
+  else if(e.key==='Enter' && S.answers[S.idx] && document.activeElement?.id!=='next'){ e.preventDefault(); next(); }
+});
+
+async function startCaps(){
+  if(capsStarted) return; capsStarted = true;
+  if(!window.claude?.use){ capState='none'; render(); return; }
+  try{ DB = await window.claude.use('db'); }catch(_){ DB = null; }
+  try{ ASSETS = await window.claude.use('assets'); }catch(_){ ASSETS = null; }
+  capState = DB ? 'ready' : 'none';
+  if(DB){
+    DB.collection('photos').onSnapshot(snap=>{
+      const next = {};
+      snap.docs.forEach(d=>{
+        const v = d.data();
+        if(v && byId[v.part] && typeof v.asset==='string' && /^[A-Za-z0-9_-]{8,64}$/.test(v.asset)){
+          (next[v.part] ??= []).push({doc:d.id, asset:v.asset, name:String(v.name||''), at:String(v.addedAt||'')});
+        }
+      });
+      Object.values(next).forEach(a=>a.sort((x,y)=>x.at.localeCompare(y.at)));
+      PHOTOS = next; if(IMP.running) refreshImportBox(); renderSoon();
+    }, ()=>{ dbBroken = true; render(); });
+  }
+  render();
+}
+
+function start(data){
+  if(!window.claude?.use){ const tp=document.getElementById('tab-photos'); if(tp) tp.hidden=true; }
+  const c=document.getElementById('count'); if(c) c.textContent=PARTS.length;
+  const prev = data && data.state;
+  if(prev && Array.isArray(prev.deck) && prev.deck.every(q=>byId[q.id])){
+    S = prev; S.settings = Object.assign({lang:'fr', level:'apprenti', img:'mix', fam:'all', len:10}, S.settings||{});
+  } else S = freshState();
+  window.claude?.hot?.snapshot?.(()=>({state:S}));
+  render();
+  startCaps();
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+
+</body>
+</html>
