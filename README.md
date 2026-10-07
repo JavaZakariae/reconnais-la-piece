@@ -1,6 +1,6 @@
 # Reconnais la Pièce
 
-Quiz pour apprendre à reconnaître 94 pièces de plomberie, chauffage et débouchage, avec les noms en français et en néerlandais.
+Quiz pour apprendre à reconnaître 177 pièces de plomberie, chauffage et débouchage, avec photos, noms en français et en néerlandais, et 3 niveaux (Année 1, 2, 3).
 Application web installable (PWA) : elle fonctionne hors ligne une fois installée.
 
 ## Installer sur Android
@@ -9,7 +9,7 @@ Application web installable (PWA) : elle fonctionne hors ligne une fois install�
 
 ## Mettre à jour
 1. Remplace `index.html`.
-2. Dans `sw.js`, change `VERSION` (par exemple `rlp-v2`) pour que les téléphones téléchargent la nouvelle version.
+2. Dans `sw.js`, change `VERSION` (par exemple `rlp-v3`) pour que les téléphones téléchargent la nouvelle version.
 3. Commit et push.
 
 ## Fichiers
@@ -17,3 +17,4 @@ Application web installable (PWA) : elle fonctionne hors ligne une fois install�
 - `manifest.webmanifest` — nom, icônes, couleurs de l'application
 - `sw.js` — cache hors ligne
 - `icons/` — icônes de l'application
+- `photos/` — une photo par pièce (`<id>.jpg`), mises en cache pour le hors ligne. Usage personnel d'étude : photos issues du catalogue Facq, ne pas redistribuer.
